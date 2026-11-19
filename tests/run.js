@@ -6,6 +6,7 @@ import { handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
+import { checkNotes, formatFindings } from '../core/checks.js';
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
@@ -257,6 +258,40 @@ function fixture() {
   ok(doc.includes('beat 4'), 'handover places the tempo change');
   ok(doc.includes('everyone looks at the stage'), 'handover carries the moment');
   ok(doc.includes('awards night'), 'handover carries the purpose');
+}
+
+
+// checks of the written notes
+{
+  const song = fixture();
+  let f = checkNotes(song);
+  ok(f.length === 0, 'clean fixture flags nothing (got: ' + f.map(x=>x.id).join(',') + ')');
+  // overlap
+  song.tracks[0].notes.push({ tick: 240, duration: 480, pitch: 60, velocity: 90 });
+  f = checkNotes(song);
+  ok(f.some(x => x.id === 'overlap'), 'overlap flagged');
+  // flat dynamics
+  const sf = fixture();
+  for (let i = 0; i < 8; i++) sf.tracks[0].notes.push({ tick: 4800 + i * 480, duration: 480, pitch: 60 + (i % 4), velocity: 90 });
+  for (const n of sf.tracks[0].notes) n.velocity = 90;
+  f = checkNotes(sf);
+  ok(f.some(x => x.id === 'flat-dynamics'), 'flat dynamics flagged');
+  ok(!f.some(x => x.id === 'drum-range'), 'empty drum part not range-flagged');
+  // edge pitch
+  const s2 = fixture();
+  s2.tracks[0].notes.push({ tick: 0, duration: 480, pitch: 10, velocity: 90 });
+  ok(checkNotes(s2).some(x => x.id === 'edge-pitch'), 'edge pitch flagged');
+  // drum range
+  const s3 = fixture();
+  s3.tracks[1].notes.push({ tick: 0, duration: 120, pitch: 20, velocity: 90 });
+  ok(checkNotes(s3).some(x => x.id === 'drum-range'), 'drum key outside GM flagged');
+  // truthful wording
+  ok(formatFindings(checkNotes(fixture())).startsWith('Checks of the written notes'), 'reported as checks of the notes');
+  // handoff carries findings
+  const s4 = fixture();
+  s4.tracks[0].notes.push({ tick: 240, duration: 480, pitch: 60, velocity: 90 });
+  const doc = handoffDocument(s4);
+  ok(doc.includes('Checks of the written notes') && doc.includes('overlap'), 'handoff says where it falls short');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

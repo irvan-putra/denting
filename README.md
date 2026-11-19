@@ -40,6 +40,12 @@ Status: **early draft (v0.1.0)**.
   clean.
 - Think first: "note: ..." is recorded as discussion and never moves
   the music.
+- Honest self-checks: after every change, denting reports checks of the
+  written notes - overlaps, notes too short to hear, flat dynamics,
+  pitches at instrument edges, drum keys outside the General MIDI
+  guarantee, endings that may not land, identical sections. They are
+  labeled as checks of the notes, never as judgments of the sound, and
+  where the piece falls short the handover notes say so.
 - Export the `.mid` and the handover notes (purpose, structure, timing,
   the moments that matter) at any time. The purpose also travels inside
   the `.mid` itself as a plain text event, so intent survives even when
@@ -58,7 +64,7 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 71 unit tests
+node tests/run.js   # 79 unit tests
 node tests/export-fixture.js /tmp/f.mid && python3 tests/interop_mido.py /tmp/f.mid   # independent read via mido, no dependencies
 ```
 

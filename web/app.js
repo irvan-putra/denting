@@ -1,11 +1,12 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.2.5';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.2.5';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.2.5';
-import { handoffDocument } from '../core/handoff.js?v=0.2.5';
-import { interpret } from '../core/director.js?v=0.2.5';
-import { listLibrary } from '../core/library.js?v=0.2.5';
-import { seedLibrary } from '../core/seeds.js?v=0.2.5';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.3.0';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.3.0';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.3.0';
+import { handoffDocument } from '../core/handoff.js?v=0.3.0';
+import { interpret } from '../core/director.js?v=0.3.0';
+import { listLibrary } from '../core/library.js?v=0.3.0';
+import { seedLibrary } from '../core/seeds.js?v=0.3.0';
+import { checkNotes } from '../core/checks.js?v=0.3.0';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -61,6 +62,18 @@ function render() {
   sel.innerHTML = '<option value="all">all</option>' +
     song.tracks.map((t, i) => '<option value="' + i + '">' + escapeHtml(t.name || 'track ' + (i + 1)) + '</option>').join('');
   sel.value = cur;
+  // checks of the written notes
+  const chk = $('checks');
+  if (chk) {
+    if (!song.tracks.length) {
+      chk.innerHTML = '<p class="note">Checks of the written notes run once there is music. They inspect the notes, never the sound.</p>';
+    } else {
+      const findings = checkNotes(song);
+      chk.innerHTML = findings.length
+        ? findings.map(f => '<div class="turn">' + escapeHtml(f.text) + '</div>').join('')
+        : '<p class="note">Checks of the written notes: nothing to flag.</p>';
+    }
+  }
   // library
   const lib = $('libraryList');
   if (lib) {

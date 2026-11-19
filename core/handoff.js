@@ -3,7 +3,8 @@
 // what the music is for, its structure, its timing, and the moments that
 // matter. Both leave the product together.
 
-import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.2.5';
+import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.3.0';
+import { checkNotes } from './checks.js?v=0.3.0';
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60), s = sec - m * 60;
@@ -64,6 +65,14 @@ export function handoffDocument(song) {
   } else {
     lines.push('(no recorded requests)');
   }
+  lines.push('');
+  const findings = checkNotes(song);
+  lines.push('## Checks of the written notes');
+  lines.push('');
+  lines.push('These inspect the notes, not the sound; take them as pointers.');
+  lines.push('');
+  if (findings.length) for (const f of findings) lines.push('- ' + f.text);
+  else lines.push('- Nothing to flag.');
   lines.push('');
   lines.push('## What you may change');
   lines.push('');
