@@ -75,6 +75,11 @@ professional musician can pick up.</p>
 </fieldset>
 
 <fieldset>
+  <legend>library</legend>
+  <div id="libraryList"></div>
+</fieldset>
+
+<fieldset>
   <legend>earlier states</legend>
   <div id="revisions"><p class="note">Every change begins with your request; you can return to any earlier state.</p></div>
 </fieldset>
@@ -82,15 +87,16 @@ professional musician can pick up.</p>
 <fieldset>
   <legend>planned, not built yet</legend>
   <p class="note">AI music director (model choice is an open decision),
-  composing a new piece from a description, beat-fine aiming in the
-  conversation itself, thinking out loud before changing the music,
-  reusable music and prompt libraries, and a fuller project exchange
-  format. See docs/decisions.md in the source repo.</p>
+  composing a new piece from a description, and a fuller project
+  exchange format. See docs/decisions.md in the source repo.</p>
 </fieldset>
 
 <div id="status"></div>
 <p class="note">Source: <a href="https://github.com/irvan-putra/denting">github.com/irvan-putra/denting</a> (AGPL-3.0).
-Local commands that work today: transpose up/down, louder/softer, faster/slower.</p>
+Local commands that work today: transpose up/down, louder/softer,
+faster/slower, "at 0:42 ..." markers, "N bpm at beat M", "save this as
+NAME" / "insert NAME at beat M", "prompt NAME: ...", and "note: ..."
+to think out loud without changing the music.</p>
 <script type="module" src="web/app.js"></script>
 </body>
 </html>

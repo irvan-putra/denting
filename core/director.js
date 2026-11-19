@@ -10,7 +10,16 @@
 //    request is wired up. When no model is configured, the director says
 //    so plainly instead of pretending.
 
-import { transpose, scaleVelocity, setTempo } from './engine.js';
+import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js';
+import { secondsToTick } from './model.js';
+import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js';
+
+function parseClock(text) {
+  const m = text.match(/(\d+):(\d\d)/);
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+
+function m1(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
 
 export function interpret(request, song, aim) {
   const text = request.trim().toLowerCase();
@@ -20,6 +29,76 @@ export function interpret(request, song, aim) {
     const m = text.match(re);
     return m ? parseInt(m[1], 10) : dflt;
   };
+
+  // A moment that matters: "at 0:42 everyone looks at the stage",
+  // "mark beat 8: the big reveal". Sudden means an instant: a marker
+  // lands on exactly that tick.
+  {
+    const sec = parseClock(text);
+    const at = text.match(/\bat\b/);
+    const beatMark = text.match(/mark\s+beat\s+(\d+(?:\.\d+)?)[:\s]+(.+)/);
+    if (sec != null && at) {
+      const label = text.replace(/\bat\s+\d+:\d\d/, '').replace(/^(mark|moment|note)\s*/, '').trim() || 'moment';
+      const tick = secondsToTick(song, sec);
+      song.markers.push({ tick, label });
+      song.markers.sort((a, b) => a.tick - b.tick);
+      return { handled: true, explanation: 'Marked "' + label + '" at ' + m1(sec) + ' (beat ' + (tick / song.ticksPerBeat).toFixed(1) + '). It travels in the .mid and the handover notes.' };
+    }
+    if (beatMark) {
+      addMarker(song, beatMark[2].trim(), parseFloat(beatMark[1]));
+      return { handled: true, explanation: 'Marked "' + beatMark[2].trim() + '" at beat ' + beatMark[1] + '.' };
+    }
+  }
+
+  // Tempo at a point: "90 bpm at beat 8" / "at beat 8, 90 bpm".
+  {
+    const m = text.match(/(\d+)\s*bpm\s+(?:from|at)\s+beat\s+(\d+(?:\.\d+)?)/) ||
+              text.match(/at\s+beat\s+(\d+(?:\.\d+)?)[,\s]+(\d+)\s*bpm/);
+    if (m) {
+      const bpm = parseInt(m[1], 10), beat = parseFloat(m[2]);
+      const tick = Math.round(beat * song.ticksPerBeat);
+      song.tempoMap = song.tempoMap.filter(t => t.tick !== tick);
+      song.tempoMap.push({ tick, bpm });
+      song.tempoMap.sort((a, b) => a.tick - b.tick);
+      return { handled: true, explanation: 'Tempo changes to ' + bpm + ' bpm at beat ' + beat + '. The handover notes carry the tempo map; some software asks before importing it.' };
+    }
+  }
+
+  // Library: "save this as fanfare", "insert fanfare at beat 16", "library".
+  {
+    let m = text.match(/save\s+(?:this|that|it)\s+as\s+(.+)/);
+    if (m) {
+      const name = m[1].trim();
+      const frag = saveFragment(song, aim, name, normalizeAim(song, aim));
+      return { handled: true, explanation: 'Saved ' + frag.notes.length + ' notes as fragment "' + name + '". Insert it anywhere with: insert ' + name + ' at beat N.' };
+    }
+    m = text.match(/insert\s+(.+?)\s+at\s+beat\s+(\d+(?:\.\d+)?)/);
+    if (m) {
+      const added = insertFragment(song, m[1].trim(), parseFloat(m[2]));
+      return { handled: true, explanation: 'Inserted "' + m[1].trim() + '" at beat ' + m[2] + ' (' + added + ' notes added).' };
+    }
+    m = text.match(/remember\s+(?:this\s+)?(?:prompt|phrasing)\s+as\s+(.+)/);
+    if (m) {
+      return { handled: false, reason: 'unclear', message: 'Remember which phrasing? Send it as: prompt NAME: the words to keep.' };
+    }
+    m = text.match(/^prompt\s+(.+?):\s*(.+)/);
+    if (m) {
+      savePrompt(song, m[1].trim(), m[2].trim());
+      return { handled: true, explanation: 'Saved prompt "' + m[1].trim() + '".' };
+    }
+    if (/^(library|what.?s in the library|list library)$/.test(text)) {
+      const items = listLibrary(song);
+      return { handled: false, reason: 'info', message: items.length ? 'Library: ' + items.join('; ') : 'The library is empty. Save the aimed music with: save this as NAME.' };
+    }
+  }
+
+  // Thinking out loud: "note: ..." is discussion, never an edit.
+  {
+    const m = text.match(/^(?:note|idea|thought)\s*:\s*(.+)/);
+    if (m) {
+      return { discussion: true, message: m[1].trim() };
+    }
+  }
 
   if (/\btranspos|too high|too low|higher|lower\b/.test(text)) {
     let semis;

@@ -27,6 +27,16 @@ Status: **early draft (v0.1.0)**.
   transform, and are verified identical afterwards.
 - Every change begins with your request and says what it understood and
   did. Earlier states are kept; return to any of them.
+- Mark the moments that matter straight from conversation: "at 0:42
+  everyone looks at the stage" lands a marker on exactly that instant;
+  "90 bpm at beat 8" edits the tempo map. Both travel in the `.mid` and
+  the handover notes.
+- Reuse what works: "save this as fanfare" keeps the aimed stretch as a
+  named fragment, "insert fanfare at beat 16" combines it back in, and
+  "prompt NAME: the words" keeps phrasings that worked. "library" lists
+  what you have.
+- Think first: "note: ..." is recorded as discussion and never moves
+  the music.
 - Export the `.mid` and the handover notes (purpose, structure, timing,
   the moments that matter) at any time. Your work is yours; nothing
   leaves your device unless you export it.
@@ -37,14 +47,13 @@ The AI music director itself. The spec requires an AI model to do the
 musical work, but which model, which platform and who pays for each
 request are open questions (see [docs/decisions.md](docs/decisions.md)).
 This draft wires no model and makes no paid request; a request that
-needs one says so plainly. Also planned: composing from scratch,
-beat-fine aiming in conversation, think-out-loud before changes,
-reusable music and prompt libraries.
+needs one says so plainly. Also planned: composing from scratch and
+deeper beat-fine aiming in conversation.
 
 ## Develop
 
 ```sh
-node tests/run.js   # 38 tests, no dependencies
+node tests/run.js   # 56 tests, no dependencies
 ```
 
 `core/` is a dependency-free ES-module library (song model, Standard

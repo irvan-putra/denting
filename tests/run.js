@@ -4,6 +4,7 @@ import { newSong, addTrack, tickToSeconds, GM_PROGRAMS } from '../core/model.js'
 import { applyAimed, transpose, scaleVelocity, setTempo, addMarker, checkpoint, restoreRevision, snapshot } from '../core/engine.js';
 import { handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
+import { listLibrary } from '../core/library.js';
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
@@ -156,6 +157,67 @@ function fixture() {
   const song = fixture();
   const n = transpose(song, -12); // no aim: all tracks
   eq(n, 4, 'only pitched notes counted, drums excluded');
+}
+
+
+// timed marker from conversation, exact to the instant
+{
+  const song = fixture();
+  const res = interpret('at 0:02 everyone looks at the stage', song);
+  ok(res.handled, 'clock marker handled');
+  eq(song.markers[song.markers.length-1].tick, 1600, 'marker at exactly 2s at 100bpm');
+  eq(song.markers[song.markers.length-1].label, 'everyone looks at the stage', 'marker label');
+}
+{
+  const song = fixture();
+  interpret('mark beat 6: the big reveal', song);
+  eq(song.markers[song.markers.length-1].tick, 2880, 'beat marker');
+}
+
+// tempo change at a point
+{
+  const song = fixture();
+  const res = interpret('90 bpm at beat 4', song);
+  ok(res.handled, 'tempo-at-beat handled');
+  eq(song.tempoMap.length, 2, 'tempo map grew');
+  eq(song.tempoMap[1], { tick: 1920, bpm: 90 }, 'tempo entry at beat 4');
+}
+
+// library: save aimed stretch, insert elsewhere
+{
+  const song = fixture();
+  const save = interpret('save this as fanfare', song, { tracks: [0], fromBeat: 0, toBeat: 2 });
+  ok(save.handled, 'fragment saved');
+  const before = song.tracks[0].notes.length;
+  const ins = interpret('insert fanfare at beat 4', song);
+  ok(ins.handled, 'fragment inserted');
+  eq(song.tracks[0].notes.length, before + 2, 'two notes inserted');
+  eq(song.tracks[0].notes.some(n => n.tick === 1920), true, 'inserted at beat 4');
+}
+{
+  const song = fixture();
+  const res = interpret('library', song);
+  ok(!res.handled && res.message.includes('empty'), 'empty library says so');
+  interpret('save this as riff', song, { tracks: [0], fromBeat: 0, toBeat: 1 });
+  const res2 = interpret('library', song);
+  ok(res2.message.includes('riff'), 'library lists fragment');
+}
+
+// prompt library
+{
+  const song = fixture();
+  const res = interpret('prompt more epic: make it more epic when everyone looks at the stage', song);
+  ok(res.handled, 'prompt saved');
+  ok(listLibrary(song).some(x => x.includes('more epic')), 'prompt in library');
+}
+
+// discussion never moves the music
+{
+  const song = fixture();
+  const before = snapshot(song);
+  const res = interpret('note: maybe the drums should drop out before the reveal', song);
+  ok(res.discussion, 'note treated as discussion');
+  eq(snapshot(song), before, 'discussion changed nothing');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

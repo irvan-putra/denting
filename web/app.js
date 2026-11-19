@@ -4,6 +4,7 @@ import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS } from '..
 import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js';
 import { handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
+import { listLibrary } from '../core/library.js';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -53,6 +54,14 @@ function render() {
   sel.innerHTML = '<option value="all">all</option>' +
     song.tracks.map((t, i) => '<option value="' + i + '">' + escapeHtml(t.name || 'track ' + (i + 1)) + '</option>').join('');
   sel.value = cur;
+  // library
+  const lib = $('libraryList');
+  if (lib) {
+    const items = listLibrary(song);
+    lib.innerHTML = items.length
+      ? items.map(x => '<div class="turn">' + escapeHtml(x) + '</div>').join('')
+      : '<p class="note">Nothing saved yet. Aim at a stretch and say: save this as NAME. Keep a phrasing with: prompt NAME: the words.</p>';
+  }
   // revisions
   const rev = $('revisions');
   if (!song.revisions.length) {
@@ -111,13 +120,16 @@ $('send').onclick = () => {
     escapeHtml(res.explanation || res.message || '(nothing done)');
   log.prepend(div);
   $('request').value = '';
-  if (res.handled) {
+  if (res.discussion) {
+    // Thinking out loud: recorded in the conversation, music untouched.
+    say('Noted, music unchanged. Agree on it first, then ask for the change.', 'ok');
+  } else if (res.handled) {
     checkpoint(song, { request: text, explanation: res.explanation });
     save(); render();
     say(res.explanation, 'ok');
   } else {
     restore(song, before); // a failed attempt never moves the music
-    say(res.message || 'Not something I can do yet.', 'err');
+    say(res.message || 'Not something I can do yet.', res.reason === 'info' ? 'ok' : 'err');
   }
 };
 $('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
