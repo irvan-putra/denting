@@ -67,6 +67,8 @@ deeper beat-fine aiming in conversation.
 
 ```sh
 node tests/run.js   # 94 unit tests
+# interop: the export is opened by two independent MIDI implementations
+# (Python mido and JS @tonejs/midi), in CI
 node tests/export-fixture.js /tmp/f.mid && python3 tests/interop_mido.py /tmp/f.mid   # independent read via mido, no dependencies
 ```
 

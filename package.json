@@ -1,0 +1,10 @@
+{
+  "name": "denting",
+  "private": true,
+  "version": "0.3.2",
+  "description": "Tell your story with music - conversational MIDI composition. Dev dependency is only for the interop test.",
+  "type": "module",
+  "devDependencies": {
+    "@tonejs/midi": "^2.0.28"
+  }
+}
