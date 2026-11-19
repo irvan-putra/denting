@@ -68,3 +68,17 @@ export const GM_PROGRAMS = [
   'Tinkle Bell','Agogo','Steel Drums','Woodblock','Taiko Drum','Melodic Tom','Synth Drum','Reverse Cymbal',
   'Guitar Fret Noise','Breath Noise','Seashore','Bird Tweet','Telephone Ring','Helicopter','Applause','Gunshot',
 ];
+
+/** Tick at a number of seconds, walking the tempo map (inverse of tickToSeconds). */
+export function secondsToTick(song, seconds) {
+  const map = [...song.tempoMap].sort((a, b) => a.tick - b.tick);
+  let sec = 0, lastTick = 0, bpm = 120;
+  for (const t of map) {
+    const segSec = ((t.tick - lastTick) / song.ticksPerBeat) * (60 / bpm);
+    if (sec + segSec >= seconds) {
+      return Math.round(lastTick + (seconds - sec) * (bpm / 60) * song.ticksPerBeat);
+    }
+    sec += segSec; lastTick = t.tick; bpm = t.bpm;
+  }
+  return Math.round(lastTick + (seconds - sec) * (bpm / 60) * song.ticksPerBeat);
+}
