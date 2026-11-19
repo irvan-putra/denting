@@ -10,9 +10,9 @@
 //    request is wired up. When no model is configured, the director says
 //    so plainly instead of pretending.
 
-import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.2.4';
-import { secondsToTick } from './model.js?v=0.2.4';
-import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.2.4';
+import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.2.5';
+import { secondsToTick } from './model.js?v=0.2.5';
+import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.2.5';
 
 function parseClock(text) {
   const m = text.match(/(\d+):(\d\d)/);

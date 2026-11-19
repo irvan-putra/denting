@@ -1,11 +1,11 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.2.4';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS } from '../core/model.js?v=0.2.4';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.2.4';
-import { handoffDocument } from '../core/handoff.js?v=0.2.4';
-import { interpret } from '../core/director.js?v=0.2.4';
-import { listLibrary } from '../core/library.js?v=0.2.4';
-import { seedLibrary } from '../core/seeds.js?v=0.2.4';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.2.5';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.2.5';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.2.5';
+import { handoffDocument } from '../core/handoff.js?v=0.2.5';
+import { interpret } from '../core/director.js?v=0.2.5';
+import { listLibrary } from '../core/library.js?v=0.2.5';
+import { seedLibrary } from '../core/seeds.js?v=0.2.5';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -42,8 +42,14 @@ function render() {
     const end = songEndTick(song);
     let html = '<table><tr><th>part</th><th>instrument</th><th>notes</th></tr>';
     song.tracks.forEach((t, i) => {
-      html += '<tr><td>' + escapeHtml(t.name || '(untitled)') + '</td><td>' +
-        (t.isDrums ? 'Drums' : escapeHtml(GM_PROGRAMS[t.program] || '?')) + '</td><td>' + t.notes.length + '</td></tr>';
+      let instrument;
+      if (t.isDrums) {
+        const sounds = [...new Set(t.notes.map(n => GM_DRUMS[n.pitch]).filter(Boolean))];
+        instrument = 'Drums' + (sounds.length ? ' (' + sounds.slice(0, 4).join(', ') + (sounds.length > 4 ? ', ...' : '') + ')' : '');
+      } else {
+        instrument = escapeHtml(GM_PROGRAMS[t.program] || '?');
+      }
+      html += '<tr><td>' + escapeHtml(t.name || '(untitled)') + '</td><td>' + instrument + '</td><td>' + t.notes.length + '</td></tr>';
     });
     html += '</table><p class="note">' + tickToBeat(song, end).toFixed(1) + ' beats, about ' +
       Math.round(tickToSeconds(song, end)) + 's at ' + Math.round(song.tempoMap[0].bpm) + ' bpm.</p>';
