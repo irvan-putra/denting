@@ -83,10 +83,13 @@ export function applyAimed(song, aim, fn) {
 
 export function transpose(song, semitones, aim) {
   if (!Number.isInteger(semitones) || semitones < -48 || semitones > 48) throw new Error('transpose: bad interval');
-  return applyAimed(song, aim, (n, track) => {
+  let changed = 0;
+  applyAimed(song, aim, (n, track) => {
     if (track.isDrums) return; // drum pitches are sounds, not notes
     n.pitch = Math.min(127, Math.max(0, n.pitch + semitones));
+    changed++;
   });
+  return changed;
 }
 
 export function scaleVelocity(song, factor, aim) {

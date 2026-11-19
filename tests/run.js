@@ -150,6 +150,14 @@ function fixture() {
   eq(song.tracks[0].notes[2].pitch, 52, 'beat 2-3 transposed');
 }
 
+
+// transpose count excludes skipped drums
+{
+  const song = fixture();
+  const n = transpose(song, -12); // no aim: all tracks
+  eq(n, 4, 'only pitched notes counted, drums excluded');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
 
