@@ -58,7 +58,8 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 71 tests, no dependencies
+node tests/run.js   # 71 unit tests
+node tests/export-fixture.js /tmp/f.mid && python3 tests/interop_mido.py /tmp/f.mid   # independent read via mido, no dependencies
 ```
 
 `core/` is a dependency-free ES-module library (song model, Standard
