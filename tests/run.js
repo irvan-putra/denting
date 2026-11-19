@@ -6,6 +6,7 @@ import { describeRoles, handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
+import { songToAbc, pitchToAbc, partToAbc } from '../core/abc.js';
 import { checkNotes, formatFindings } from '../core/checks.js';
 
 let pass = 0, fail = 0;
@@ -354,6 +355,39 @@ function fixture() {
   ]});
   const roles = describeRoles(song);
   ok(roles.get(song.tracks[0]).includes('foundation'), 'low single notes described as foundation');
+}
+
+// abc score conversion
+{
+  eq(pitchToAbc(60), 'C', 'middle C');
+  eq(pitchToAbc(72), 'c', 'C5 lowercase');
+  eq(pitchToAbc(48), 'C,', 'C3 comma');
+  eq(pitchToAbc(61), '^C', 'accidental inline');
+  eq(pitchToAbc(84), "c'", 'C6 apostrophe');
+}
+{
+  const song = newSong({ bpm: 100 });
+  song.purpose = 'score test';
+  song.tracks.push({ name: 'melody', program: 0, isDrums: false, notes: [
+    { tick: 0, duration: 480, pitch: 60, velocity: 96 },
+    { tick: 960, duration: 1920, pitch: 64, velocity: 96 },
+    { tick: 960, duration: 1920, pitch: 67, velocity: 96 },
+  ]});
+  const abc = songToAbc(song);
+  ok(abc.includes('Q:1/4=100'), 'tempo header');
+  ok(abc.includes('M:4/4'), 'meter header');
+  ok(abc.includes('T:score test'), 'title from purpose');
+  const body = partToAbc(song, song.tracks[0]);
+  ok(body.startsWith('C4 z4 '), 'quarter then quarter rest on grid: ' + body);
+  ok(body.includes('[EG]'), 'simultaneous notes become a chord');
+  ok(body.includes('-'), 'note crossing a barline is tied');
+}
+{
+  const song = newSong();
+  song.tracks.push({ name: 'drums', isDrums: true, program: null, notes: [
+    { tick: 0, duration: 120, pitch: 36, velocity: 100 },
+  ]});
+  ok(songToAbc(song).includes('clef=perc'), 'drums use percussion clef');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

@@ -31,6 +31,9 @@ Status: **early draft (v0.1.0)**.
   everyone looks at the stage" lands a marker on exactly that instant;
   "90 bpm at beat 8" edits the tempo map. Both travel in the `.mid` and
   the handover notes.
+- See the written notes as a printable score (quantized to a
+  sixteenth-note grid; loudness and fine timing not shown - the .mid
+  stays the source of truth)
 - Reuse what works: "save this as fanfare" keeps the aimed stretch as a
   named fragment, "insert fanfare at beat 16" combines it back in, and
   "prompt NAME: the words" keeps phrasings that worked. "library" lists
@@ -66,7 +69,7 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 94 unit tests
+node tests/run.js   # 106 unit tests
 # interop: the export is opened by two independent MIDI implementations
 # (Python mido and JS @tonejs/midi), in CI
 node tests/export-fixture.js /tmp/f.mid && python3 tests/interop_mido.py /tmp/f.mid   # independent read via mido, no dependencies

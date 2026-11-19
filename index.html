@@ -26,6 +26,12 @@
   td, th { text-align: left; padding: 0.2rem 0.4rem; border-bottom: 1px solid #8883; }
   fieldset { border: 1px solid #8885; border-radius: 6px; margin: 0.6rem 0; }
   legend { font-size: 0.85rem; opacity: 0.75; }
+  @media print {
+    body * { visibility: hidden; }
+    #scoreCard, #scoreCard * { visibility: visible; }
+    #scoreCard { position: absolute; top: 0; left: 0; width: 100%; }
+    #scoreCard .note, #scoreCard .row, #scoreCard h2 { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -37,7 +43,7 @@
   used under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
 </div>
 <h1>denting <span class="sub">tell your story with music</span></h1>
-<p class="note">Draft v0.3.2. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.0. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up.</p>
@@ -102,6 +108,15 @@ Local commands that work today: transpose up/down, louder/softer,
 faster/slower, "at 0:42 ..." markers, "N bpm at beat M", "save this as
 NAME" / "insert NAME at beat M", "prompt NAME: ...", and "note: ..."
 to think out loud without changing the music.</p>
-<script type="module" src="web/app.js?v=0.3.2"></script>
+<section class="card" id="scoreCard">
+  <h2>score</h2>
+  <p class="note">A reading picture of the written notes, snapped to a sixteenth-note grid. Loudness and fine timing are not shown; the .mid file stays the source of truth.</p>
+  <div id="score"></div>
+  <div class="row">
+    <button id="printBtn" type="button">Print score</button>
+  </div>
+</section>
+<script src="web/vendor/abcjs-basic-min.js"></script>
+<script type="module" src="web/app.js?v=0.4.0"></script>
 </body>
 </html>

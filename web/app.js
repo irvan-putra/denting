@@ -1,12 +1,12 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.3.2';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.3.2';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.3.2';
-import { handoffDocument } from '../core/handoff.js?v=0.3.2';
-import { interpret } from '../core/director.js?v=0.3.2';
-import { listLibrary } from '../core/library.js?v=0.3.2';
-import { seedLibrary } from '../core/seeds.js?v=0.3.2';
-import { checkNotes } from '../core/checks.js?v=0.3.2';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.0';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.0';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.0';
+import { handoffDocument } from '../core/handoff.js?v=0.4.0';
+import { interpret } from '../core/director.js?v=0.4.0';
+import { listLibrary } from '../core/library.js?v=0.4.0';
+import { seedLibrary } from '../core/seeds.js?v=0.4.0';
+import { checkNotes } from '../core/checks.js?v=0.4.0';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -82,6 +82,13 @@ function render() {
       ? items.map(x => '<div class="turn">' + escapeHtml(x) + '</div>').join('')
       : '<p class="note">Nothing saved yet. Aim at a stretch and say: save this as NAME. Keep a phrasing with: prompt NAME: the words.</p>';
   }
+  // score (reading picture; quantized, no loudness)
+  const sc = $('score');
+  if (sc && window.ABCJS) {
+    sc.innerHTML = '';
+    try { window.ABCJS.renderAbc(sc, songToAbc(song), { responsive: 'resize', add_classes: true }); }
+    catch (e) { sc.innerHTML = '<p class="note">The score picture could not be drawn for these notes.</p>'; }
+  }
   // revisions
   const rev = $('revisions');
   if (!song.revisions.length) {
@@ -94,7 +101,9 @@ function render() {
     rev.querySelectorAll('button[data-rev]').forEach(b => b.onclick = () => {
       checkpoint(song, { request: '(state before returning)', source: 'auto' });
       restoreRevision(song, parseInt(b.dataset.rev, 10));
-      save(); render();
+      save(); const pb = $('printBtn');
+if (pb) pb.onclick = () => window.print();
+render();
       say('Returned to that earlier state. The state you left is kept above.', 'ok');
     });
   }
