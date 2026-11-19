@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.9';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.9';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.9';
-import { handoffDocument } from '../core/handoff.js?v=0.4.9';
-import { interpret } from '../core/director.js?v=0.4.9';
-import { listLibrary } from '../core/library.js?v=0.4.9';
-import { seedLibrary } from '../core/seeds.js?v=0.4.9';
-import { checkNotes } from '../core/checks.js?v=0.4.9';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.9';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.10';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.10';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.10';
+import { handoffDocument } from '../core/handoff.js?v=0.4.10';
+import { interpret } from '../core/director.js?v=0.4.10';
+import { listLibrary } from '../core/library.js?v=0.4.10';
+import { seedLibrary } from '../core/seeds.js?v=0.4.10';
+import { checkNotes } from '../core/checks.js?v=0.4.10';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.10';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -32,6 +32,14 @@ function say(msg, cls = '') {
   const el = $('status');
   el.textContent = msg;
   el.className = cls;
+}
+
+// While the example file is being fetched, edits are paused so a request
+// fired mid-load cannot be silently overwritten when the fetch lands.
+let busy = false;
+function setBusy(on) {
+  busy = on;
+  ['send', 'request', 'importBtn', 'loadExample'].forEach(id => { $(id).disabled = on; });
 }
 
 function render() {
@@ -149,6 +157,7 @@ $('purpose').onchange = () => {
 };
 
 $('send').onclick = () => {
+  if (busy) { say('Still loading the example; that request was not sent. Try again when loading finishes.', 'err'); return; }
   const text = $('request').value.trim();
   if (!text) return;
   const before = snapshot(song);
@@ -183,20 +192,27 @@ $('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send')
 
 $('importBtn').onclick = () => $('import').click();
 $('loadExample').onclick = async () => {
+  if (busy) return;
   if (song.tracks.length && !confirm('Replace the current unsaved piece with the public Balonku example?')) return;
+  setBusy(true);
+  say('Loading the Balonku example... editing is paused until it finishes.');
   try {
     const res = await fetch('files/balonku/Balonku-assumed-timing.mid');
     if (!res.ok) throw new Error('download failed: ' + res.status);
     const bytes = new Uint8Array(await res.arrayBuffer());
-    const keptLibrary = (song.libraryRefs || []).slice();
-    song = readSmf(bytes);
-    song.libraryRefs = keptLibrary;
-    if (!song.libraryRefs.length) seedLibrary(song);
-    song.revisions = [];
+    const loaded = readSmf(bytes);
+    loaded.libraryRefs = (song.libraryRefs || []).slice();
+    if (!loaded.libraryRefs.length) seedLibrary(loaded);
+    loaded.revisions = [];
+    song = loaded;
     checkpoint(song, { request: 'load Balonku example', explanation: 'Loaded the public Balonku assumed-timing melody.', source: 'import' });
     save(); render();
     say('Loaded Balonku example: ' + song.tracks.length + ' parts, 87 notes, 56.5 seconds at the assumed 120 bpm.', 'ok');
-  } catch (e) { say('Could not load the example: ' + e.message, 'err'); }
+  } catch (e) {
+    say('Could not load the example: ' + e.message + '. Your previous state is unchanged.', 'err');
+  } finally {
+    setBusy(false);
+  }
 };
 $('import').onchange = async () => {
   const f = $('import').files[0];
