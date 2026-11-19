@@ -44,26 +44,26 @@
 </div>
 <h1>denting <span class="sub">tell your story with music</span></h1>
 <p><a href="files/balonku/Balonku-assumed-timing.mid" download>Balonku MIDI</a> · <a href="files/balonku/Balonku-assumed-timing-score.pdf">Balonku score PDF</a></p>
-<p class="note">Draft v0.4.6. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.7. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up.</p>
 
 <fieldset>
   <legend>what is this music for?</legend>
-  <input type="text" id="purpose" value="Balonku Ada Lima: a children's singalong; the pop moment lands at 0:30">
+  <input type="text" id="purpose" value="Balonku Ada Lima: a children's singalong melody">
   <p class="note">Remembered for every later request until you change it.</p>
 </fieldset>
 
 <fieldset>
   <legend>say it your way</legend>
-  <input type="text" id="request" value="insert fanfare at beat 116">
+  <input type="text" id="request" value="insert fanfare at beat 104">
   <div>
     <button id="send" class="primary">Direct</button>
     <span class="note">Aim (optional): track
       <select id="aimTrack"><option value="all">all</option></select>
-      beats <input type="text" id="aimFrom" size="3" value="116"> -
-      <input type="text" id="aimTo" size="3" value="120"></span>
+      beats <input type="text" id="aimFrom" size="3" value="104"> -
+      <input type="text" id="aimTo" size="3" value="112"></span>
   </div>
   <div id="log"></div>
 </fieldset>
@@ -118,6 +118,6 @@ to think out loud without changing the music.</p>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.6"></script>
+<script type="module" src="web/app.js?v=0.4.7"></script>
 </body>
 </html>
