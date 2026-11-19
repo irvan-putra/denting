@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Synthetic evaluation: can a small fully local (WASM/CPU) language model
+     turn plain-language music edit requests into denting's structured edit
+     plan, and stay honest on requests outside the vocabulary?
+     Runs entirely in the browser; no keys, no accounts, no billing. -->
+<html><head><meta charset="utf-8"><title>eval loading</title></head>
+<body><pre id="out">starting</pre>
+<script type="module">
+const out = document.getElementById('out');
+const log = s => { out.textContent += '\n' + s; };
+const SCHEMA = `You convert a music edit request into JSON only, no other text.
+Schema: {"op": one of "transpose","louder","softer","faster","slower","tempo","none",
+"track": "all" or a part name, "fromBeat": integer or null, "toBeat": integer or null,
+"amount": integer semitones or null, "bpm": integer or null}
+Use op "none" when the request is not a note/tempo edit of existing music.`;
+const CASES = [
+  { q: 'make the drums louder', op: 'louder', track: 'drums' },
+  { q: 'softer please', op: 'softer' },
+  { q: 'transpose up 2', op: 'transpose', amount: 2 },
+  { q: 'make it faster', op: 'faster' },
+  { q: 'set it to 90 bpm', op: 'tempo', bpm: 90 },
+  { q: 'only the bass, louder', op: 'louder', track: 'bass' },
+  { q: 'slow down', op: 'slower' },
+  { q: 'transpose beat 3 down 1', op: 'transpose', amount: -1, fromBeat: 3 },
+  { q: 'the melody is too high, bring it down', op: 'transpose', track: 'melody' },
+  { q: 'make beats 4 to 8 softer', op: 'softer', fromBeat: 4, toBeat: 8 },
+  { q: 'make it sound like rain on a tin roof', op: 'none' },
+  { q: 'add a saxophone solo', op: 'none' },
+  { q: 'compose a new chorus', op: 'none' },
+  { q: 'what key is this in?', op: 'none' },
+  { q: 'make it more emotional', op: 'none' },
+  { q: 'change the lyrics', op: 'none' },
+];
+const MODEL = 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
+(async () => {
+  const t0 = performance.now();
+  try {
+    log('webgpu: ' + (navigator.gpu ? (await navigator.gpu.requestAdapter() ? 'adapter' : 'no adapter') : 'absent'));
+    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
+    log('library loaded at ' + Math.round(performance.now() - t0) + 'ms');
+    const gen = await pipeline('text-generation', MODEL, { dtype: 'q4', device: 'wasm' });
+    const tLoad = Math.round(performance.now() - t0);
+    log('model ' + MODEL + ' ready at ' + tLoad + 'ms');
+    let opOk = 0, fieldOk = 0, fieldTot = 0, parseOk = 0, lat = [];
+    for (const c of CASES) {
+      const tq = performance.now();
+      const r = await gen([{ role: 'system', content: SCHEMA }, { role: 'user', content: c.q }],
+        { max_new_tokens: 80, do_sample: false });
+      const ms = Math.round(performance.now() - tq); lat.push(ms);
+      const text = r[0].generated_text.at(-1).content.trim();
+      let parsed = null;
+      try { const m = text.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : null; } catch (e) {}
+      if (parsed) parseOk++;
+      const opGood = parsed && parsed.op === c.op;
+      if (opGood) opOk++;
+      let det = '';
+      for (const k of ['track', 'amount', 'bpm', 'fromBeat', 'toBeat']) {
+        if (c[k] !== undefined) {
+          fieldTot++;
+          const good = parsed && parsed[k] === c[k];
+          if (good) fieldOk++;
+          det += ' ' + k + ':' + (good ? 'ok' : 'want ' + c[k] + ' got ' + (parsed ? parsed[k] : 'unparsed'));
+        }
+      }
+      log((opGood ? 'PASS ' : 'FAIL ') + JSON.stringify(c.q) + ' -> op ' + (parsed ? parsed.op : 'unparsed') + ' (' + ms + 'ms)' + det);
+    }
+    lat.sort((a, b) => a - b);
+    log('SUMMARY model=' + MODEL + ' loadMs=' + tLoad +
+      ' parse=' + parseOk + '/' + CASES.length +
+      ' op=' + opOk + '/' + CASES.length +
+      ' fields=' + fieldOk + '/' + fieldTot +
+      ' latencyMedianMs=' + lat[Math.floor(lat.length / 2)] + ' maxMs=' + lat[lat.length - 1]);
+  } catch (e) { log('EVAL_ERROR ' + (e && e.message ? e.message : String(e))); }
+  document.title = 'DONE';
+})();
+</script></body></html>

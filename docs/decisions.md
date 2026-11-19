@@ -34,12 +34,11 @@ questions to settle before designing. Where denting stands:
 
 No model is wired up and no paid request is possible today; the
 director handles the deterministic local vocabulary and says so
-honestly when a request needs a model. The constraints on any option
-(recorded from the owner's standing rules): no usage-based billing and
-no top-ups, and no credential or password forms - denting must never
-collect a persistent API key in chat or in a homebuilt paste-key form.
-This section is research, not an approved implementation; the
-commitment is the owner's.
+honestly when a request needs a model. The project constraints on any option: no usage-based billing and no
+pay-per-request top-ups, and no credential or password forms - the
+product must never collect a persistent API key in chat or in a
+homebuilt paste-key form. This section is research, not an approved
+implementation; model choice remains an open decision.
 
 What the grounding showed (2026-11-19):
 
@@ -53,7 +52,8 @@ What the grounding showed (2026-11-19):
   data-protective terms apply only to Paid Services, which require an
   active Cloud billing account - outside the no-usage-billing
   constraint. (The protective terms also apply to free-tier use from
-  the EEA/UK/Switzerland, but the owner is in Indonesia.) So a
+  the EEA/UK/Switzerland, a regional exception that cannot be relied
+  on generally.) So a
   bring-your-own-key Gemini route fails two constraints at once:
   private-work handling on the free tier, and billing on the paid
   tier. It is recorded here and set aside, not recommended.
