@@ -133,7 +133,7 @@ function header(song, x, withTitle) {
 // part. One tune for short pieces; several for long ones so printing can
 // paginate between them. A note tied across a chunk boundary displays as
 // two untied written notes (the .mid stays the source of truth).
-export function songToAbcTunes(song, barCount = 8) {
+export function songToAbcTunes(song, barCount = 2) {
   const sig = song.timeSignatures[0] || { numerator: 4, denominator: 4 };
   const barUnits = sig.numerator * (16 / sig.denominator);
   const perPart = song.tracks.map(t => partToAbcBars(song, t));
@@ -147,6 +147,7 @@ export function songToAbcTunes(song, barCount = 8) {
       const id = (t.name || 'part').replace(/[^A-Za-z0-9]/g, '_');
       lines.push('V:' + id + ' name="' + (t.name || 'part').replace(/"/g, "'") + '" clef=' + clefFor(t));
       const slice = perPart[i].slice(from, from + barCount);
+      if (slice.length) slice[slice.length - 1] = slice[slice.length - 1].replace(/-$/, '');
       lines.push(slice.join(' | ') + (slice.length ? ' |' : ''));
     });
     tunes.push(lines.join('\n') + '\n');

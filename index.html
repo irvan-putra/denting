@@ -27,9 +27,10 @@
   fieldset { border: 1px solid #8885; border-radius: 6px; margin: 0.6rem 0; }
   legend { font-size: 0.85rem; opacity: 0.75; }
   @media print {
-    body * { visibility: hidden; }
-    #scoreCard, #scoreCard * { visibility: visible; }
+    body > :not(#scoreCard) { display: none !important; }
+    body { max-width: none; padding: 0; color: black; background: white; }
     #scoreCard .note, #scoreCard .row, #scoreCard h2 { display: none; }
+    #score > div { break-inside: avoid; margin-bottom: 14px; }
   }
 </style>
 </head>
@@ -42,7 +43,7 @@
   used under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
 </div>
 <h1>denting <span class="sub">tell your story with music</span></h1>
-<p class="note">Draft v0.4.3. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.4. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up.</p>
@@ -109,13 +110,13 @@ NAME" / "insert NAME at beat M", "prompt NAME: ...", and "note: ..."
 to think out loud without changing the music.</p>
 <section class="card" id="scoreCard">
   <h2>score</h2>
-  <p class="note">A reading picture of the written notes, snapped to a sixteenth-note grid. Loudness and fine timing are not shown; the .mid file stays the source of truth.</p>
+  <p class="note">A reading picture of the written notes, snapped to a sixteenth-note grid. Loudness, fine timing, tempo/meter changes and independent overlapping voices are not shown. Ties between two-bar groups are omitted; the .mid file stays the source of truth.</p>
   <div id="score"></div>
   <div class="row">
     <button id="printBtn" type="button">Print score</button>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.3"></script>
+<script type="module" src="web/app.js?v=0.4.4"></script>
 </body>
 </html>

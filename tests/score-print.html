@@ -2,8 +2,8 @@
 <style>
   body { font-family: sans-serif; }
   @media print {
-    body * { visibility: hidden; }
-    #scoreCard, #scoreCard * { visibility: visible; }
+    body > :not(#scoreCard) { display: none; }
+    #score > div { break-inside: avoid; margin-bottom: 14px; }
     #scoreCard .note, #scoreCard h2 { display: none; }
   }
 </style>
@@ -23,7 +23,7 @@
     for (const tune of songToAbcTunes(song)) {
       const d = document.createElement('div');
       host.appendChild(d);
-      window.ABCJS.renderAbc(d, tune, { staffwidth: 680 });
+      window.ABCJS.renderAbc(d, tune, { staffwidth: 680, responsive: 'resize' });
     }
     document.title = 'READY';
   } catch (e) {

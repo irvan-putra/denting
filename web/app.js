@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.3';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.3';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.3';
-import { handoffDocument } from '../core/handoff.js?v=0.4.3';
-import { interpret } from '../core/director.js?v=0.4.3';
-import { listLibrary } from '../core/library.js?v=0.4.3';
-import { seedLibrary } from '../core/seeds.js?v=0.4.3';
-import { checkNotes } from '../core/checks.js?v=0.4.3';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.3';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.4';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.4';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.4';
+import { handoffDocument } from '../core/handoff.js?v=0.4.4';
+import { interpret } from '../core/director.js?v=0.4.4';
+import { listLibrary } from '../core/library.js?v=0.4.4';
+import { seedLibrary } from '../core/seeds.js?v=0.4.4';
+import { checkNotes } from '../core/checks.js?v=0.4.4';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.4';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -91,7 +91,7 @@ function render() {
       for (const tune of songToAbcTunes(song)) {
         const d = document.createElement('div');
         sc.appendChild(d);
-        window.ABCJS.renderAbc(d, tune, { responsive: 'resize', add_classes: true });
+        window.ABCJS.renderAbc(d, tune, { staffwidth: 680, responsive: 'resize', add_classes: true });
       }
     }
     catch (e) { sc.innerHTML = '<p class="note">The score picture could not be drawn for these notes.</p>'; }
