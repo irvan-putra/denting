@@ -46,6 +46,10 @@ export function writeSmf(song) {
   for (const m of song.markers) {
     push(m.tick, [0xff, 0x06, ...vlq(textBytes(m.label).length), ...textBytes(m.label)]);
   }
+  if (song.purpose) {
+    const t = 'purpose: ' + song.purpose;
+    push(0, [0xff, 0x01, ...vlq(textBytes(t).length), ...textBytes(t)]);
+  }
   chunks.push(buildTrack(cond, tpb));
 
   for (const track of song.tracks) {
@@ -130,7 +134,7 @@ export function readSmf(bytes) {
     tempoMap: [], timeSignatures: [], markers: [],
     tracks: [], revisions: [], purpose: '', libraryRefs: [],
   };
-  const conductor = { tempoMap: [], timeSignatures: [], markers: [] };
+  const conductor = { tempoMap: [], timeSignatures: [], markers: [], texts: [] };
 
   for (let ti = 0; ti < ntracks; ti++) {
     r.expect([0x4d, 0x54, 0x72, 0x6b]);
@@ -156,6 +160,8 @@ export function readSmf(bytes) {
           conductor.timeSignatures.push({ tick, numerator: data[0], denominator: 2 ** data[1] });
         } else if (type === 0x06) {
           conductor.markers.push({ tick, label: new TextDecoder().decode(new Uint8Array(data)) });
+        } else if (type === 0x01 && ti === 0) {
+          conductor.texts.push(new TextDecoder().decode(new Uint8Array(data)));
         } else if (type === 0x03) {
           track.name = new TextDecoder().decode(new Uint8Array(data));
         } else {
@@ -220,6 +226,9 @@ export function readSmf(bytes) {
   else song.tempoMap.push(...conductor.tempoMap);
   song.timeSignatures = conductor.timeSignatures;
   song.markers = conductor.markers;
+  for (const t of conductor.texts) {
+    if (t.startsWith('purpose: ')) song.purpose = t.slice('purpose: '.length);
+  }
   if (!song.tempoMap.length) song.tempoMap = [{ tick: 0, bpm: 120 }];
   if (!song.timeSignatures.length) song.timeSignatures = [{ tick: 0, numerator: 4, denominator: 4 }];
   return song;

@@ -244,6 +244,21 @@ function fixture() {
   eq(half.tracks[0].notes[1].tick, 120, 'seed ticks scaled to song resolution');
 }
 
+
+// the handover pair round-trips: markers and tempo changes survive the .mid
+{
+  const song = fixture();
+  interpret('90 bpm at beat 4', song);
+  const back = readSmf(writeSmf(song));
+  eq(back.tempoMap.length, 2, 'tempo change survives export');
+  eq(back.markers.length, 1, 'marker survives export');
+  const doc = handoffDocument(back);
+  ok(doc.includes('90'), 'handover names the changed tempo');
+  ok(doc.includes('beat 4'), 'handover places the tempo change');
+  ok(doc.includes('everyone looks at the stage'), 'handover carries the moment');
+  ok(doc.includes('awards night'), 'handover carries the purpose');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
 

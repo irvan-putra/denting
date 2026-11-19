@@ -41,7 +41,9 @@ Status: **early draft (v0.1.0)**.
 - Think first: "note: ..." is recorded as discussion and never moves
   the music.
 - Export the `.mid` and the handover notes (purpose, structure, timing,
-  the moments that matter) at any time. Your work is yours; nothing
+  the moments that matter) at any time. The purpose also travels inside
+  the `.mid` itself as a plain text event, so intent survives even when
+  the notes file is all that gets passed on. Your work is yours; nothing
   leaves your device unless you export it.
 
 ## Planned, not built yet
@@ -56,7 +58,7 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 65 tests, no dependencies
+node tests/run.js   # 71 tests, no dependencies
 ```
 
 `core/` is a dependency-free ES-module library (song model, Standard
