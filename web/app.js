@@ -1,0 +1,190 @@
+// denting web app: local-first direction of a piece of music.
+import { readSmf, writeSmf } from '../core/smf.js';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS } from '../core/model.js';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js';
+import { handoffDocument } from '../core/handoff.js';
+import { interpret } from '../core/director.js';
+
+const STORE_KEY = 'denting.song.v1';
+const $ = id => document.getElementById(id);
+
+let song = load() || newSong();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return null;
+    const s = newSong();
+    restore(s, JSON.parse(raw).state || raw);
+    s.revisions = JSON.parse(raw).revisions || [];
+    return s;
+  } catch { return null; }
+}
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify({ state: snapshot(song), revisions: song.revisions }));
+}
+
+function say(msg, cls = '') {
+  const el = $('status');
+  el.textContent = msg;
+  el.className = cls;
+}
+
+function render() {
+  $('purpose').value = song.purpose || '';
+  // overview
+  const ov = $('overview');
+  if (!song.tracks.length) {
+    ov.innerHTML = '<p class="note">No music yet. Import a .mid to start from an existing file, or direct one into being (AI director: planned).</p>';
+  } else {
+    const end = songEndTick(song);
+    let html = '<table><tr><th>part</th><th>instrument</th><th>notes</th></tr>';
+    song.tracks.forEach((t, i) => {
+      html += '<tr><td>' + escapeHtml(t.name || '(untitled)') + '</td><td>' +
+        (t.isDrums ? 'Drums' : escapeHtml(GM_PROGRAMS[t.program] || '?')) + '</td><td>' + t.notes.length + '</td></tr>';
+    });
+    html += '</table><p class="note">' + tickToBeat(song, end).toFixed(1) + ' beats, about ' +
+      Math.round(tickToSeconds(song, end)) + 's at ' + Math.round(song.tempoMap[0].bpm) + ' bpm.</p>';
+    ov.innerHTML = html;
+  }
+  // aim track options
+  const sel = $('aimTrack');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="all">all</option>' +
+    song.tracks.map((t, i) => '<option value="' + i + '">' + escapeHtml(t.name || 'track ' + (i + 1)) + '</option>').join('');
+  sel.value = cur;
+  // revisions
+  const rev = $('revisions');
+  if (!song.revisions.length) {
+    rev.innerHTML = '<p class="note">Every change begins with your request; you can return to any earlier state.</p>';
+  } else {
+    rev.innerHTML = song.revisions.map(r =>
+      '<div class="turn"><span class="req">' + escapeHtml(r.request || r.source) + '</span>' +
+      (r.explanation ? '<br>' + escapeHtml(r.explanation) : '') +
+      ' <button data-rev="' + r.id + '">return here</button></div>').reverse().join('');
+    rev.querySelectorAll('button[data-rev]').forEach(b => b.onclick = () => {
+      checkpoint(song, { request: '(state before returning)', source: 'auto' });
+      restoreRevision(song, parseInt(b.dataset.rev, 10));
+      save(); render();
+      say('Returned to that earlier state. The state you left is kept above.', 'ok');
+    });
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function currentAim() {
+  const t = $('aimTrack').value;
+  const from = $('aimFrom').value.trim();
+  const to = $('aimTo').value.trim();
+  return {
+    tracks: t === 'all' ? 'all' : [parseInt(t, 10)],
+    fromBeat: from === '' ? null : parseFloat(from),
+    toBeat: to === '' ? null : parseFloat(to),
+  };
+}
+
+$('purpose').onchange = () => {
+  song.purpose = $('purpose').value.trim();
+  save();
+  say('Purpose remembered. Every later request counts as for this, until you say otherwise.', 'ok');
+};
+
+$('send').onclick = () => {
+  const text = $('request').value.trim();
+  if (!text) return;
+  const before = snapshot(song);
+  let res;
+  try {
+    res = interpret(text, song, currentAim());
+  } catch (e) {
+    restore(song, before);
+    say('That change failed and nothing was changed: ' + e.message, 'err');
+    return;
+  }
+  const log = $('log');
+  const div = document.createElement('div');
+  div.className = 'turn';
+  div.innerHTML = '<span class="req">' + escapeHtml(text) + '</span><br>' +
+    escapeHtml(res.explanation || res.message || '(nothing done)');
+  log.prepend(div);
+  $('request').value = '';
+  if (res.handled) {
+    checkpoint(song, { request: text, explanation: res.explanation });
+    save(); render();
+    say(res.explanation, 'ok');
+  } else {
+    restore(song, before); // a failed attempt never moves the music
+    say(res.message || 'Not something I can do yet.', 'err');
+  }
+};
+$('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
+
+$('importBtn').onclick = () => $('import').click();
+$('import').onchange = async () => {
+  const f = $('import').files[0];
+  if (!f) return;
+  try {
+    const bytes = new Uint8Array(await f.arrayBuffer());
+    song = readSmf(bytes);
+    song.revisions = [];
+    checkpoint(song, { request: 'import ' + f.name, explanation: 'Started from ' + f.name + '.', source: 'import' });
+    save(); render();
+    say('Imported ' + f.name + ': ' + song.tracks.length + ' parts. Controller data is preserved.', 'ok');
+  } catch (e) {
+    say('Could not read ' + f.name + ': ' + e.message, 'err');
+  }
+};
+
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+$('export').onclick = () => {
+  if (!song.tracks.length) { say('Nothing to export yet.', 'err'); return; }
+  download('denting.mid', new Blob([writeSmf(song)], { type: 'audio/midi' }));
+  say('Exported denting.mid. Open it in any music software.', 'ok');
+};
+
+$('exportHandoff').onclick = () => {
+  download('denting-handover.md', new Blob([handoffDocument(song)], { type: 'text/markdown' }));
+  say('Exported the handover notes: purpose, structure, timing and the moments that matter.', 'ok');
+};
+
+// --- simple local playback preview ---
+let audio = null, nodes = [];
+$('play').onclick = () => {
+  if (!song.tracks.length) { say('Nothing to play yet.', 'err'); return; }
+  $('stop').onclick();
+  audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+  const t0 = audio.currentTime + 0.1;
+  for (const track of song.tracks) {
+    for (const n of track.notes) {
+      const start = t0 + tickToSeconds(song, n.tick);
+      const dur = Math.max(0.05, tickToSeconds(song, n.tick + n.duration) - tickToSeconds(song, n.tick));
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = track.isDrums ? 'square' : (track.program < 8 ? 'triangle' : track.program < 32 ? 'sawtooth' : 'sine');
+      osc.frequency.value = 440 * Math.pow(2, (n.pitch - 69) / 12);
+      gain.gain.setValueAtTime((n.velocity / 127) * 0.15, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(start); osc.stop(start + dur + 0.05);
+      nodes.push(osc);
+    }
+  }
+  say('Playing a plain-synth preview. The .mid carries the real instrument numbers.', 'ok');
+};
+$('stop').onclick = () => {
+  for (const n of nodes) { try { n.stop(); } catch {} }
+  nodes = [];
+};
+
+render();
+say(song.tracks.length ? 'Your piece from last time is still here.' : 'Ready. This draft never sends your work anywhere.', 'ok');

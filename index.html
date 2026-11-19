@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>denting - tell your story with music</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; max-width: 46rem; margin: 0 auto; padding: 1rem; }
+  h1 { font-size: 1.4rem; margin: 0.6rem 0 0.2rem; }
+  h1 .sub { font-size: 0.95rem; font-weight: normal; opacity: 0.7; }
+  .note { font-size: 0.85rem; opacity: 0.75; }
+  #credit { border: 1px solid #8888; border-radius: 6px; padding: 0.6rem; margin-bottom: 0.8rem; font-size: 0.9rem; }
+  textarea, input[type=text] { width: 100%; box-sizing: border-box; font: inherit; padding: 0.4rem; }
+  button { font: inherit; padding: 0.35rem 0.7rem; margin: 0.15rem 0.15rem 0.15rem 0; border: 1px solid #888; border-radius: 6px; background: transparent; color: inherit; }
+  button.primary { background: #0b7285; border-color: #0b7285; color: #fff; }
+  #log { margin-top: 0.8rem; }
+  .turn { border-left: 3px solid #8885; padding: 0.2rem 0.6rem; margin: 0.4rem 0; }
+  .turn .req { font-style: italic; }
+  #status { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 0.85rem; padding: 0.5rem; border-radius: 6px; }
+  #status.ok { background: #2b8a3e22; }
+  #status.err { background: #c92a2a22; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  td, th { text-align: left; padding: 0.2rem 0.4rem; border-bottom: 1px solid #8883; }
+  fieldset { border: 1px solid #8885; border-radius: 6px; margin: 0.6rem 0; }
+  legend { font-size: 0.85rem; opacity: 0.75; }
+</style>
+</head>
+<body>
+<div id="credit">
+  Built to the spec
+  <a href="docs/spec/tell-your-story-with-music.pdf"><cite>Tell Your Story With Music: Customer Stories and Product Spec</cite></a>
+  by <a href="https://github.com/cyharyanto">Christoforus Yoga Haryanto</a>
+  (<a href="https://www.cyharyanto.com">cyharyanto.com</a>),
+  used under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+</div>
+<h1>denting <span class="sub">tell your story with music</span></h1>
+<p class="note">Draft v0.1.0. Everything runs locally in your browser; your
+work never leaves your device unless you export it. You direct the music
+with words; the result is a real .mid file plus handover notes a
+professional musician can pick up.</p>
+
+<fieldset>
+  <legend>what is this music for?</legend>
+  <input type="text" id="purpose" placeholder='e.g. "a company awards night; everyone looks at the stage at 0:42"'>
+  <p class="note">Remembered for every later request until you change it.</p>
+</fieldset>
+
+<fieldset>
+  <legend>say it your way</legend>
+  <input type="text" id="request" placeholder='e.g. "this is a bit too high"'>
+  <div>
+    <button id="send" class="primary">Direct</button>
+    <span class="note">Aim (optional): track
+      <select id="aimTrack"><option value="all">all</option></select>
+      beats <input type="text" id="aimFrom" size="3" placeholder="from"> -
+      <input type="text" id="aimTo" size="3" placeholder="to"></span>
+  </div>
+  <div id="log"></div>
+</fieldset>
+
+<fieldset>
+  <legend>the piece</legend>
+  <div id="overview"><p class="note">No music yet. Import a .mid to start from an existing file, or direct one into being (AI director: planned).</p></div>
+  <div>
+    <input type="file" id="import" accept=".mid,.midi" style="display:none">
+    <button id="importBtn">Import .mid</button>
+    <button id="play">Play</button>
+    <button id="stop">Stop</button>
+    <button id="export">Export .mid</button>
+    <button id="exportHandoff">Export handover notes</button>
+  </div>
+</fieldset>
+
+<fieldset>
+  <legend>earlier states</legend>
+  <div id="revisions"><p class="note">Every change begins with your request; you can return to any earlier state.</p></div>
+</fieldset>
+
+<fieldset>
+  <legend>planned, not built yet</legend>
+  <p class="note">AI music director (model choice is an open decision),
+  composing a new piece from a description, beat-fine aiming in the
+  conversation itself, thinking out loud before changing the music,
+  reusable music and prompt libraries, and a fuller project exchange
+  format. See docs/decisions.md in the source repo.</p>
+</fieldset>
+
+<div id="status"></div>
+<p class="note">Source: <a href="https://github.com/irvan-putra/denting">github.com/irvan-putra/denting</a> (AGPL-3.0).
+Local commands that work today: transpose up/down, louder/softer, faster/slower.</p>
+<script type="module" src="web/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+# denting
+
+Tell your story with music. You say what should happen, in whatever
+words you have; denting turns that into written notes you can hear,
+revise and take away as a real `.mid` file, plus handover notes a
+professional musician can pick up and finish.
+
+Built to the spec *Tell Your Story With Music: Customer Stories and
+Product Spec* by [Christoforus Yoga Haryanto](https://github.com/cyharyanto)
+([cyharyanto.com](https://www.cyharyanto.com)), used under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). The
+original document is in [docs/spec/](docs/spec/ATTRIBUTION.md). denting
+is the product built on it; the spec's author does not endorse denting.
+
+Status: **early draft (v0.1.0)**.
+
+## What works today
+
+- Import any `.mid` file; controller data it carries is preserved.
+- Direct it with everyday words. Local, deterministic, no AI model and
+  no cost: "this is a bit too high", "louder", "slower", "transpose up
+  2", "90 bpm". A vague request gets a reasonable attempt you can steer
+  by listening.
+- Aim a request at one part and a stretch of beats. **Everything outside
+  the aim stays exactly as it was** - enforced by the edit engine, not
+  promised in prose: notes outside the aim are never handed to the
+  transform, and are verified identical afterwards.
+- Every change begins with your request and says what it understood and
+  did. Earlier states are kept; return to any of them.
+- Export the `.mid` and the handover notes (purpose, structure, timing,
+  the moments that matter) at any time. Your work is yours; nothing
+  leaves your device unless you export it.
+
+## Planned, not built yet
+
+The AI music director itself. The spec requires an AI model to do the
+musical work, but which model, which platform and who pays for each
+request are open questions (see [docs/decisions.md](docs/decisions.md)).
+This draft wires no model and makes no paid request; a request that
+needs one says so plainly. Also planned: composing from scratch,
+beat-fine aiming in conversation, think-out-loud before changes,
+reusable music and prompt libraries.
+
+## Develop
+
+```sh
+node tests/run.js   # 38 tests, no dependencies
+```
+
+`core/` is a dependency-free ES-module library (song model, Standard
+MIDI File reader/writer, aimed-edit engine, revisions, handover
+document, request director). `web/` is the browser app on top of it;
+`index.html` at the repo root is the app, served by GitHub Pages.
+
+## License
+
+denting's own code: GNU Affero General Public License v3.0 (see
+LICENSE). The spec document keeps its own CC BY-SA 4.0 license; see
+docs/spec/ATTRIBUTION.md.
