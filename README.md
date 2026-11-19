@@ -34,7 +34,10 @@ Status: **early draft (v0.1.0)**.
 - Reuse what works: "save this as fanfare" keeps the aimed stretch as a
   named fragment, "insert fanfare at beat 16" combines it back in, and
   "prompt NAME: the words" keeps phrasings that worked. "library" lists
-  what you have.
+  what you have. The product also offers material of its own: four
+  original seed fragments (cadence, groove, walking bass, fanfare) ship
+  in the library, written as note data for denting so the license stays
+  clean.
 - Think first: "note: ..." is recorded as discussion and never moves
   the music.
 - Export the `.mid` and the handover notes (purpose, structure, timing,
@@ -53,7 +56,7 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 56 tests, no dependencies
+node tests/run.js   # 65 tests, no dependencies
 ```
 
 `core/` is a dependency-free ES-module library (song model, Standard

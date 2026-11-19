@@ -32,6 +32,8 @@ export function insertFragment(song, name, atBeat, trackName) {
   const frag = (song.libraryRefs || []).find(f => f.kind === 'fragment' && f.name === name);
   if (!frag) throw new Error('no fragment named "' + name + '"');
   const base = Math.round(atBeat * song.ticksPerBeat);
+  const seedTpb = frag.ticksPerBeat || 480;
+  const scale = song.ticksPerBeat / seedTpb;
   // Group by source part: reuse a track with the same name+instrument when
   // it exists, otherwise create one.
   const byPart = new Map();
@@ -55,7 +57,7 @@ export function insertFragment(song, name, atBeat, trackName) {
       song.tracks.push(track);
     }
     for (const n of notes) {
-      track.notes.push({ tick: base + n.tick, duration: n.duration, pitch: n.pitch, velocity: n.velocity });
+      track.notes.push({ tick: base + Math.round(n.tick * scale), duration: Math.max(1, Math.round(n.duration * scale)), pitch: n.pitch, velocity: n.velocity });
       added++;
     }
     track.notes.sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);

@@ -5,6 +5,7 @@ import { applyAimed, transpose, scaleVelocity, setTempo, addMarker, checkpoint, 
 import { handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
+import { SEEDS, seedLibrary } from '../core/seeds.js';
 
 let pass = 0, fail = 0;
 function ok(cond, name) {
@@ -218,6 +219,29 @@ function fixture() {
   const res = interpret('note: maybe the drums should drop out before the reveal', song);
   ok(res.discussion, 'note treated as discussion');
   eq(snapshot(song), before, 'discussion changed nothing');
+}
+
+
+// seeds: original material ships with the product and inserts cleanly
+{
+  const song = newSong();
+  seedLibrary(song);
+  const names = listLibrary(song).join(' ');
+  ok(names.includes('cadence') && names.includes('groove') && names.includes('fanfare'), 'seeds listed');
+  ok(SEEDS.every(f => f.origin === 'denting'), 'all seeds original to denting');
+  const res = interpret('insert cadence at beat 0', song);
+  ok(res.handled, 'seed inserted');
+  eq(song.tracks.length, 1, 'seed created its part');
+  eq(song.tracks[0].notes.length, 12, 'cadence notes present');
+  const res2 = interpret('insert groove at beat 8', song);
+  ok(res2.handled, 'drum seed inserted');
+  eq(song.tracks[1].isDrums, true, 'groove part is drums');
+  eq(song.tracks[1].channel, 9, 'groove on channel 10');
+  // tick scaling: a 240-tpb song gets half-size ticks from 480-tpb seeds
+  const half = newSong({ ticksPerBeat: 240 });
+  seedLibrary(half);
+  interpret('insert fanfare at beat 0', half);
+  eq(half.tracks[0].notes[1].tick, 120, 'seed ticks scaled to song resolution');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');
