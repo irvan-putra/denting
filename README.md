@@ -66,7 +66,7 @@ deeper beat-fine aiming in conversation.
 ## Develop
 
 ```sh
-node tests/run.js   # 87 unit tests
+node tests/run.js   # 94 unit tests
 node tests/export-fixture.js /tmp/f.mid && python3 tests/interop_mido.py /tmp/f.mid   # independent read via mido, no dependencies
 ```
 

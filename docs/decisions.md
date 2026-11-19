@@ -34,40 +34,52 @@ questions to settle before designing. Where denting stands:
 
 No model is wired up and no paid request is possible today; the
 director handles the deterministic local vocabulary and says so
-honestly when a request needs a model. The constraint on any option
-(recorded from the owner's standing rule): no usage-based billing and
-no top-ups; subscriptions already held or genuinely free routes only.
-Feasible options within that constraint, grounded 2026-11-19:
+honestly when a request needs a model. The constraints on any option
+(recorded from the owner's standing rules): no usage-based billing and
+no top-ups, and no credential or password forms - denting must never
+collect a persistent API key in chat or in a homebuilt paste-key form.
+This section is research, not an approved implementation; the
+commitment is the owner's.
 
-1. **Bring-your-own Gemini API key, free tier.** The Gemini API has a
-   Free usage tier that requires no billing account (paid tiers start
-   only after setting up billing in AI Studio:
-   <https://ai.google.dev/gemini-api/docs/rate-limits>). Each person
-   using denting would create their own key in AI Studio and paste it;
-   denting asks before every request that spends their quota, per the
-   spec's money limit. The key never leaves their browser. Caveat to
-   state to the user: free-tier content terms (Google may use free-tier
-   content to improve products) need checking before composing
-   private work through it.
-2. **On-device model in the browser (WebGPU).** WebLLM
-   (<https://github.com/mlc-ai/web-llm>) runs small open models fully
-   in the browser: no key, no quota, no cost, nothing leaves the
-   device. Caveat: a model small enough for a phone browser is much
-   weaker at musical instruction-following; quality would need an
-   honest evaluation against the spec's persona stories before this is
-   more than an experiment.
-3. **An external assistant the person already uses, by hand.** The
-   recipe-style route Nada pioneered: the person pastes denting's
-   state into a chatbot they already subscribe to and pastes the edit
-   plan back. Zero integration, zero cost, works today; clunky.
+What the grounding showed (2026-11-19):
 
-Recommendation to the owner (his decision, not made): option 1 as the
-first real director, option 2 as the privacy-preserving fallback to
-evaluate. Either way the engine's aim-enforcement already wraps the
+- **Gemini API free tier conflicts with the spec's privacy promise.**
+  Google's terms state that for Unpaid Services (which include the
+  unpaid Gemini API quota) submitted content and responses are used to
+  improve Google products, human reviewers may read them, and users
+  are told not to submit sensitive, confidential or personal
+  information (<https://ai.google.dev/gemini-api/docs/terms>). Private
+  composition work is exactly what must not go through that pipe. The
+  data-protective terms apply only to Paid Services, which require an
+  active Cloud billing account - outside the no-usage-billing
+  constraint. (The protective terms also apply to free-tier use from
+  the EEA/UK/Switzerland, but the owner is in Indonesia.) So a
+  bring-your-own-key Gemini route fails two constraints at once:
+  private-work handling on the free tier, and billing on the paid
+  tier. It is recorded here and set aside, not recommended.
+- **No official OAuth-style authorization route was found** for the
+  Gemini API that would avoid both a stored key and a billing account;
+  the consumer API is key-based and the Cloud routes assume billing.
+  If an official authorization flow appears later, it can be
+  reconsidered.
+
+Options that remain inside the constraints:
+
+1. **Manual external-assistant exchange (works today, zero
+   integration).** The person pastes denting's state into an assistant
+   they already subscribe to and pastes the edit plan back. Costs
+   nothing new, sends only what the person chooses to paste, and
+   matches the recipe route Nada pioneered. Clunky, but honest and
+   available now.
+2. **Keyless on-device model (WebGPU, e.g. WebLLM -
+   <https://github.com/mlc-ai/web-llm>).** No key, no quota, no cost,
+   nothing leaves the device. Open question before this can be more
+   than an experiment: actual music-edit-plan quality. A phone-browser
+   model is small; whether it can follow editing instructions well
+   enough for the spec's persona stories is untested. Next research
+   step is an offline evaluation (a fixed set of edit instructions run
+   against candidate local models, scored on whether the edit plan is
+   valid and in-aim), without spending or new connections.
+
+Either way, the engine's aim-enforcement already wraps any future
 model, so a model can never touch music outside the aim.
-- **Where is a person's work kept, and does it follow them to another
-  device?** Today: this device's browser only. Any sync (Drive backup,
-  DeltaChat sync, public-data relays) is a separate decision.
-- **Richer handover formats** (DAWproject, MusicXML) and **MIDI 2.0
-  clip files**: noted by the spec as later promises; the song model
-  already holds more than a `.mid` file so this stays possible.

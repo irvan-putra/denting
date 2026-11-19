@@ -2,7 +2,7 @@
 import { writeSmf, readSmf } from '../core/smf.js';
 import { newSong, addTrack, tickToSeconds, GM_PROGRAMS } from '../core/model.js';
 import { applyAimed, transpose, scaleVelocity, setTempo, addMarker, checkpoint, restoreRevision, snapshot } from '../core/engine.js';
-import { handoffDocument } from '../core/handoff.js';
+import { describeRoles, handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
@@ -317,8 +317,6 @@ function fixture() {
   eq(song.tracks[0].notes[3].velocity, 70, 'second half untouched');
 }
 
-console.log(pass + ' passed, ' + fail + ' failed');
-process.exit(fail ? 1 : 0);
 
 // director honors an explicit aim
 {
@@ -328,3 +326,35 @@ process.exit(fail ? 1 : 0);
   eq(song.tracks[0].notes[0].pitch, 60, 'beat 0-1 untouched by aimed command');
   eq(song.tracks[0].notes[2].pitch, 52, 'beat 2-3 transposed');
 }
+
+// handover roles: derived from the notes, per part
+{
+  const song = fixture();
+  const roles = describeRoles(song);
+  const drumRole = roles.get(song.tracks[1]);
+  ok(drumRole && drumRole.includes('rhythm'), 'drums hold the rhythm');
+  const melRole = roles.get(song.tracks[0]);
+  ok(melRole && melRole.length > 0, 'melody role described');
+}
+{
+  const song = newSong();
+  song.tracks.push({ name: 'pad', program: 48, isDrums: false, notes: [
+    { tick: 0, duration: 960, pitch: 60, velocity: 80 },
+    { tick: 0, duration: 960, pitch: 64, velocity: 80 },
+    { tick: 0, duration: 960, pitch: 67, velocity: 80 },
+  ]});
+  const roles = describeRoles(song);
+  ok(roles.get(song.tracks[0]).includes('chords'), 'overlapping notes described as chords');
+}
+{
+  const song = newSong();
+  song.tracks.push({ name: 'sub', program: 33, isDrums: false, notes: [
+    { tick: 0, duration: 480, pitch: 36, velocity: 90 },
+    { tick: 480, duration: 480, pitch: 43, velocity: 90 },
+  ]});
+  const roles = describeRoles(song);
+  ok(roles.get(song.tracks[0]).includes('foundation'), 'low single notes described as foundation');
+}
+
+console.log(pass + ' passed, ' + fail + ' failed');
+process.exit(fail ? 1 : 0);

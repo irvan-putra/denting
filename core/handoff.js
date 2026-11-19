@@ -3,12 +3,48 @@
 // what the music is for, its structure, its timing, and the moments that
 // matter. Both leave the product together.
 
-import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.3.1';
-import { checkNotes } from './checks.js?v=0.3.1';
+import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.3.2';
+import { checkNotes } from './checks.js?v=0.3.2';
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60), s = sec - m * 60;
   return m + ':' + s.toFixed(1).padStart(4, '0');
+}
+
+// Describe what each part seems to be doing, derived only from the
+// written notes: register, density and whether it plays one note at a
+// time. These are observations for the professional, not labels the
+// maker had to choose.
+export function describeRoles(song) {
+  const roles = new Map();
+  const end = songEndTick(song);
+  const beats = Math.max(1, tickToBeat(song, end));
+  const stats = song.tracks.map(t => {
+    const notes = t.notes || [];
+    const sorted = notes.slice().sort((a, b) => a.tick - b.tick);
+    let oneAtATime = true;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].tick < sorted[i - 1].tick + sorted[i - 1].duration) { oneAtATime = false; break; }
+    }
+    const avg = notes.length ? notes.reduce((s, n) => s + n.pitch, 0) / notes.length : 0;
+    return { t, notes, avg, density: notes.length / beats, oneAtATime };
+  });
+  const melodic = stats.filter(x => !x.t.isDrums);
+  const highestAvg = melodic.length ? Math.max(...melodic.map(x => x.avg)) : 0;
+  for (const x of stats) {
+    const parts = [];
+    if (x.t.isDrums) {
+      parts.push('Holds the rhythm.');
+    } else {
+      if (x.avg <= 50 && x.oneAtATime) parts.push('Low and steady; the foundation the other parts stand on.');
+      else if (x.avg === highestAvg && melodic.length > 1) parts.push('Carries the highest line; likely where the main tune sits.');
+      if (!x.oneAtATime) parts.push('Plays several notes at once (chords), so it fills the harmony.');
+      if (x.density < 0.5) parts.push('Plays sparsely; leaves space.');
+      if (!parts.length) parts.push('Sits in the middle; supports the other parts.');
+    }
+    roles.set(x.t, parts.join(' '));
+  }
+  return roles;
 }
 
 export function handoffDocument(song) {
@@ -38,11 +74,12 @@ export function handoffDocument(song) {
   lines.push('');
   lines.push('Each part is meant to do one job:');
   lines.push('');
+  const roles = describeRoles(song);
   for (const t of song.tracks) {
     const instrument = t.isDrums ? 'Drums (General MIDI, channel 10)'
       : (GM_PROGRAMS[t.program] || 'program ' + t.program);
     lines.push('- **' + (t.name || instrument) + '** - ' + instrument +
-      ', ' + t.notes.length + ' notes');
+      ', ' + t.notes.length + ' notes. ' + (roles.get(t) || ''));
   }
   lines.push('');
   lines.push('## Moments that matter');
