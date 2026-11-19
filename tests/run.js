@@ -6,7 +6,7 @@ import { describeRoles, handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
-import { songToAbc, pitchToAbc, partToAbc, drumToAbc } from '../core/abc.js';
+import { songToAbc, pitchToAbc, partToAbc, partToAbcBars, songToAbcTunes, drumToAbc } from '../core/abc.js';
 import { checkNotes, formatFindings } from '../core/checks.js';
 
 let pass = 0, fail = 0;
@@ -377,7 +377,7 @@ function fixture() {
   ok(abc.includes('Q:1/4=100'), 'tempo header');
   ok(abc.includes('M:4/4'), 'meter header');
   ok(abc.includes('T:score test'), 'title from purpose');
-  const body = partToAbc(song, song.tracks[0]);
+  const body = partToAbc(song, song.tracks[0]).join(' ');
   ok(body.startsWith('C4 z4 '), 'quarter then quarter rest on grid: ' + body);
   ok(body.includes('[EG]'), 'simultaneous notes become a chord');
   ok(body.includes('-'), 'note crossing a barline is tied');
@@ -395,9 +395,21 @@ function fixture() {
     { tick: 0, duration: 480, pitch: 36, velocity: 90 },
   ]});
   ok(songToAbc(song).includes('clef=bass'), 'low part gets bass clef');
-  eq(drumToAbc(36), 'F,', 'kick at standard position');
-  eq(drumToAbc(42), 'G', 'hihat at standard position');
+  eq(drumToAbc(36), 'F', 'kick at standard position');
+  eq(drumToAbc(42), 'g', 'hihat at standard position');
   ok(drumToAbc(60), 'unmapped drum falls back to nearest position');
+}
+
+
+{
+  const song = newSong({ bpm: 120 });
+  const notes = [];
+  for (let bar = 0; bar < 20; bar++) notes.push({ tick: bar * 4 * 480, duration: 480, pitch: 60, velocity: 90 });
+  song.tracks.push({ name: 'm', program: 0, isDrums: false, otherEvents: [], notes });
+  const tunes = songToAbcTunes(song, 8);
+  eq(tunes.length, 3, '20 bars in 8-bar chunks -> 3 tunes');
+  ok(tunes[0].includes('T:') && !tunes[1].includes('T:'), 'title only on first chunk');
+  eq(partToAbcBars(song, song.tracks[0]).length, 20, 'one entry per bar');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

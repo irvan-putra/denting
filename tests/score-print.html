@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>score print test</title>
+<style>
+  body { font-family: sans-serif; }
+  @media print {
+    body * { visibility: hidden; }
+    #scoreCard, #scoreCard * { visibility: visible; }
+    #scoreCard .note, #scoreCard h2 { display: none; }
+  }
+</style>
+<section class="card" id="scoreCard">
+  <h2>score</h2>
+  <p class="note">print test</p>
+  <div id="score"></div>
+</section>
+<script src="../web/vendor/abcjs-basic-min.js"></script>
+<script type="module">
+  import { readSmf } from '../core/smf.js';
+  import { songToAbcTunes } from '../core/abc.js';
+  const bytes = new Uint8Array(await (await fetch('fixtures/long-piece.mid')).arrayBuffer());
+  const song = readSmf(bytes);
+  const host = document.getElementById('score');
+  try {
+    for (const tune of songToAbcTunes(song)) {
+      const d = document.createElement('div');
+      host.appendChild(d);
+      window.ABCJS.renderAbc(d, tune, { staffwidth: 680 });
+    }
+    document.title = 'READY';
+  } catch (e) {
+    document.title = 'ERR';
+    host.textContent = 'RENDER ERR: ' + (e && e.message);
+  }
+</script>
