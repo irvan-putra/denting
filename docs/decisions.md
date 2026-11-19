@@ -120,16 +120,18 @@ hosted-demo trial by another worker:
   hosted demo exposed audio only. An ABC-to-MIDI conversion would be
   needed even to seed a draft here, and no converter has been
   verified.
-- **Runtime does not fit the constraints.** The README recommends a
-  24 GB NVIDIA GPU (Linux, Python 3.12), with only experimental
-  lower-memory paths; no free no-account local or hosted route that
-  yields a score was established. A short audio clip was generated on
-  the public demo without an account, but that path yields audio, not
-  editable notation.
-- **Licence mismatch.** Code is Apache-2.0 but the model weights are
-  CC BY-NC 4.0 with added custom permissions, which would bind any
-  product using them to non-commercial terms. This project's code and
-  spec licence both permit commercial use.
+- **Runtime not yet testable here.** The README recommends a 24 GB
+  NVIDIA GPU (Linux, Python 3.12), with only experimental
+  lower-memory paths. The test environment has no GPU, so a full
+  local run was not possible and the pipeline stays unverified. A
+  short audio clip was generated on the public demo without an
+  account, but that path yields audio, not editable notation.
+- **Separate licence terms.** Code is Apache-2.0; the model weights
+  carry their own terms (CC BY-NC 4.0 with added custom permissions).
+  Those weight terms would govern any use of the weights and would
+  need their own review before any reuse.
 
-Verdict: set aside for this project. Noted for completeness; not an
-option under research.
+Verdict: not integrated, and currently unverified - no feasible full
+local test exists in this environment. Kept on record rather than
+discarded; the score-editing direction could be revisited if a
+testable runtime appears.
