@@ -21,6 +21,28 @@ function lenStr(units) {
   return units === 1 ? '' : String(units);
 }
 
+// Display positions for drums on the percussion clef (GM numbers to
+// standard staff positions; display only - the .mid keeps the real pitches).
+const DRUM_POS = { 35: 'F,', 36: 'F,', 41: 'E', 43: 'E', 38: 'C', 40: 'C',
+  37: '^F', 42: 'G', 44: 'G', 46: 'G', 45: 'A', 47: 'B', 48: 'c', 50: 'd',
+  49: "c'", 52: "c'", 55: "c'", 57: "a'", 51: "d'", 59: "d'", 39: 'D', 56: 'D' };
+
+export function drumToAbc(midi) {
+  if (DRUM_POS[midi]) return DRUM_POS[midi];
+  // nearest mapped pitch, then its position
+  const keys = Object.keys(DRUM_POS).map(Number);
+  const near = keys.reduce((a, b) => Math.abs(b - midi) < Math.abs(a - midi) ? b : a);
+  return DRUM_POS[near];
+}
+
+// Choose a clef from what the part actually plays.
+export function clefFor(track) {
+  if (track.isDrums) return 'perc';
+  if (!track.notes.length) return 'treble';
+  const avg = track.notes.reduce((s, n) => s + n.pitch, 0) / track.notes.length;
+  return avg < 55 ? 'bass' : 'treble';
+}
+
 // One part's notes -> an ABC body string, quantized to the grid.
 // Chords become [CEG]; notes crossing a barline are split and tied.
 export function partToAbc(song, track) {
@@ -60,9 +82,10 @@ export function partToAbc(song, track) {
       pieces.push(step);
       placed += step;
     }
+    const toSym = track.isDrums ? drumToAbc : pitchToAbc;
     const head = chord.length > 1
-      ? '[' + chord.map(n => pitchToAbc(n.pitch)).join('') + ']'
-      : pitchToAbc(chord[0].pitch);
+      ? '[' + chord.map(n => toSym(n.pitch)).join('') + ']'
+      : toSym(chord[0].pitch);
     events.push(pieces.map(p => head + lenStr(p)).join('-'));
     cursor = start + dur;
     if (cursor % barUnits === 0) events.push('|');
@@ -78,7 +101,7 @@ export function songToAbc(song) {
     'L:1/16', 'Q:1/4=' + bpm, 'K:C'];
   for (const t of song.tracks) {
     const id = (t.name || 'part').replace(/[^A-Za-z0-9]/g, '_');
-    lines.push('V:' + id + ' name="' + (t.name || 'part').replace(/"/g, "'") + '"' + (t.isDrums ? ' clef=perc' : ''));
+    lines.push('V:' + id + ' name="' + (t.name || 'part').replace(/"/g, "'") + '" clef=' + clefFor(t));
     lines.push(partToAbc(song, t));
   }
   return lines.join('\n') + '\n';

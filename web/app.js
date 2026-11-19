@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.1';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.1';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.1';
-import { handoffDocument } from '../core/handoff.js?v=0.4.1';
-import { interpret } from '../core/director.js?v=0.4.1';
-import { listLibrary } from '../core/library.js?v=0.4.1';
-import { seedLibrary } from '../core/seeds.js?v=0.4.1';
-import { checkNotes } from '../core/checks.js?v=0.4.1';
-import { songToAbc } from '../core/abc.js?v=0.4.1';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.2';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.2';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.2';
+import { handoffDocument } from '../core/handoff.js?v=0.4.2';
+import { interpret } from '../core/director.js?v=0.4.2';
+import { listLibrary } from '../core/library.js?v=0.4.2';
+import { seedLibrary } from '../core/seeds.js?v=0.4.2';
+import { checkNotes } from '../core/checks.js?v=0.4.2';
+import { songToAbc } from '../core/abc.js?v=0.4.2';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);

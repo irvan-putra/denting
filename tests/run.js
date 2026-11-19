@@ -6,7 +6,7 @@ import { describeRoles, handoffDocument } from '../core/handoff.js';
 import { interpret } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
-import { songToAbc, pitchToAbc, partToAbc } from '../core/abc.js';
+import { songToAbc, pitchToAbc, partToAbc, drumToAbc } from '../core/abc.js';
 import { checkNotes, formatFindings } from '../core/checks.js';
 
 let pass = 0, fail = 0;
@@ -388,6 +388,16 @@ function fixture() {
     { tick: 0, duration: 120, pitch: 36, velocity: 100 },
   ]});
   ok(songToAbc(song).includes('clef=perc'), 'drums use percussion clef');
+}
+{
+  const song = newSong();
+  song.tracks.push({ name: 'sub', program: 33, isDrums: false, notes: [
+    { tick: 0, duration: 480, pitch: 36, velocity: 90 },
+  ]});
+  ok(songToAbc(song).includes('clef=bass'), 'low part gets bass clef');
+  eq(drumToAbc(36), 'F,', 'kick at standard position');
+  eq(drumToAbc(42), 'G', 'hihat at standard position');
+  ok(drumToAbc(60), 'unmapped drum falls back to nearest position');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');
