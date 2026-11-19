@@ -30,12 +30,41 @@ questions to settle before designing. Where denting stands:
 
 ## Open questions (need a decision before they are built)
 
-- **Who pays for each AI-model request, and is the person asked first?**
-  No model is wired up and no paid request is possible in this draft.
-  Options: the person's own existing subscription or key (asked each
-  time it would cost), or a local model. Until this is settled, the
-  director handles only the deterministic local commands and says so
-  honestly when a request needs the model.
+### The AI music director
+
+No model is wired up and no paid request is possible today; the
+director handles the deterministic local vocabulary and says so
+honestly when a request needs a model. The constraint on any option
+(recorded from the owner's standing rule): no usage-based billing and
+no top-ups; subscriptions already held or genuinely free routes only.
+Feasible options within that constraint, grounded 2026-11-19:
+
+1. **Bring-your-own Gemini API key, free tier.** The Gemini API has a
+   Free usage tier that requires no billing account (paid tiers start
+   only after setting up billing in AI Studio:
+   <https://ai.google.dev/gemini-api/docs/rate-limits>). Each person
+   using denting would create their own key in AI Studio and paste it;
+   denting asks before every request that spends their quota, per the
+   spec's money limit. The key never leaves their browser. Caveat to
+   state to the user: free-tier content terms (Google may use free-tier
+   content to improve products) need checking before composing
+   private work through it.
+2. **On-device model in the browser (WebGPU).** WebLLM
+   (<https://github.com/mlc-ai/web-llm>) runs small open models fully
+   in the browser: no key, no quota, no cost, nothing leaves the
+   device. Caveat: a model small enough for a phone browser is much
+   weaker at musical instruction-following; quality would need an
+   honest evaluation against the spec's persona stories before this is
+   more than an experiment.
+3. **An external assistant the person already uses, by hand.** The
+   recipe-style route Nada pioneered: the person pastes denting's
+   state into a chatbot they already subscribe to and pastes the edit
+   plan back. Zero integration, zero cost, works today; clunky.
+
+Recommendation to the owner (his decision, not made): option 1 as the
+first real director, option 2 as the privacy-preserving fallback to
+evaluate. Either way the engine's aim-enforcement already wraps the
+model, so a model can never touch music outside the aim.
 - **Where is a person's work kept, and does it follow them to another
   device?** Today: this device's browser only. Any sync (Drive backup,
   DeltaChat sync, public-data relays) is a separate decision.

@@ -1,12 +1,12 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.3.0';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.3.0';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.3.0';
-import { handoffDocument } from '../core/handoff.js?v=0.3.0';
-import { interpret } from '../core/director.js?v=0.3.0';
-import { listLibrary } from '../core/library.js?v=0.3.0';
-import { seedLibrary } from '../core/seeds.js?v=0.3.0';
-import { checkNotes } from '../core/checks.js?v=0.3.0';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.3.1';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.3.1';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.3.1';
+import { handoffDocument } from '../core/handoff.js?v=0.3.1';
+import { interpret } from '../core/director.js?v=0.3.1';
+import { listLibrary } from '../core/library.js?v=0.3.1';
+import { seedLibrary } from '../core/seeds.js?v=0.3.1';
+import { checkNotes } from '../core/checks.js?v=0.3.1';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);

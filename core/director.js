@@ -10,9 +10,9 @@
 //    request is wired up. When no model is configured, the director says
 //    so plainly instead of pretending.
 
-import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.3.0';
-import { secondsToTick } from './model.js?v=0.3.0';
-import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.3.0';
+import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.3.1';
+import { secondsToTick } from './model.js?v=0.3.1';
+import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.3.1';
 
 function parseClock(text) {
   const m = text.match(/(\d+):(\d\d)/);
@@ -21,9 +21,61 @@ function parseClock(text) {
 
 function m1(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
 
+// Aiming in words: "only the drums", "beat 3", "beats 2 to 4", "the
+// first half". Beat numbers count from 1, the way people count.
+// Returns null when the words carry no aim, so the caller's aim stands.
+export function parseAimFromText(text, song) {
+  const aim = {};
+  let any = false;
+  for (let i = 0; i < song.tracks.length; i++) {
+    const name = (song.tracks[i].name || '').toLowerCase();
+    if (name && (text.includes('only the ' + name) || text.includes('just the ' + name) ||
+                 text.includes('the ' + name + ' part'))) {
+      aim.tracks = [i]; any = true; break;
+    }
+  }
+  if (!aim.tracks && /(?:only|just)\s+the\s+drums?\b/.test(text)) {
+    const idx = song.tracks.findIndex(t => t.isDrums);
+    if (idx >= 0) { aim.tracks = [idx]; any = true; }
+  }
+  const range = text.match(/beats?\s+(\d+(?:\.\d+)?)\s*(?:to|through|-)\s*(\d+(?:\.\d+)?)/);
+  if (range) {
+    aim.fromBeat = parseFloat(range[1]) - 1;
+    aim.toBeat = parseFloat(range[2]) - 1 + 1; // "beats 2 to 4" covers beats 2,3,4
+    any = true;
+  } else {
+    const single = text.match(/\bbeat\s+(\d+(?:\.\d+)?)\b/);
+    if (single && !/bpm|mark|insert|at beat/.test(text)) {
+      const b = parseFloat(single[1]) - 1;
+      aim.fromBeat = b; aim.toBeat = b + 1; any = true;
+    }
+    const half = text.match(/\b(first|second|last)\s+half\b/);
+    if (half) {
+      let end = 0;
+      for (const t of song.tracks) for (const n of t.notes) end = Math.max(end, n.tick + n.duration);
+      const halfBeat = end / song.ticksPerBeat / 2;
+      if (/first/.test(half[1])) { aim.fromBeat = 0; aim.toBeat = halfBeat; }
+      else { aim.fromBeat = halfBeat; aim.toBeat = null; }
+      any = true;
+    }
+  }
+  return any ? aim : null;
+}
+
+function describeAim(song, aim) {
+  if (!aim) return '';
+  const parts = [];
+  if (aim.tracks && aim.tracks !== 'all') parts.push(aim.tracks.map(i => song.tracks[i] ? (song.tracks[i].name || 'track ' + (i + 1)) : '?').join(', '));
+  if (aim.fromBeat != null || aim.toBeat != null) parts.push('beats ' + ((aim.fromBeat ?? 0) + 1) + (aim.toBeat != null ? ' to ' + aim.toBeat : ' on'));
+  return parts.length ? ' Aimed at: ' + parts.join(', ') + '.' : '';
+}
+
 export function interpret(request, song, aim) {
   const text = request.trim().toLowerCase();
   if (!text) return { handled: false, reason: 'empty' };
+  const wordAim = parseAimFromText(text, song);
+  const effectiveAim = wordAim || aim;
+  const aimNote = describeAim(song, wordAim);
 
   const num = (re, dflt) => {
     const m = text.match(re);
@@ -69,7 +121,7 @@ export function interpret(request, song, aim) {
     let m = text.match(/save\s+(?:this|that|it)\s+as\s+(.+)/);
     if (m) {
       const name = m[1].trim();
-      const frag = saveFragment(song, aim, name, normalizeAim(song, aim));
+      const frag = saveFragment(song, effectiveAim, name, normalizeAim(song, effectiveAim));
       return { handled: true, explanation: 'Saved ' + frag.notes.length + ' notes as fragment "' + name + '". Insert it anywhere with: insert ' + name + ' at beat N.' };
     }
     m = text.match(/insert\s+(.+?)\s+at\s+beat\s+(\d+(?:\.\d+)?)/);
@@ -101,23 +153,31 @@ export function interpret(request, song, aim) {
   }
 
   if (/\btranspos|too high|too low|higher|lower\b/.test(text)) {
-    let semis;
-    if (/too high|lower|down/.test(text)) semis = -num(/(\d+)\s*(semi|half)?\s*(step|tone)?/, 12);
-    else if (/too low|higher|\bup\b/.test(text)) semis = num(/(\d+)\s*(semi|half)?\s*(step|tone)?/, 12);
-    else semis = num(/(-?\d+)\s*(semi|half)?\s*(step|tone)?/, 0);
-    if (/octave/.test(text)) semis = Math.sign(semis || 1) * 12 * Math.max(1, Math.abs(num(/(\d+)\s*octave/, 1)));
-    if (!semis) return { handled: false, reason: 'unclear', message: 'Transpose by how much? One answer, then I do it.' };
-    const n = transpose(song, semis, aim);
+    // The interval is the number next to the direction word, never a
+    // beat number elsewhere in the sentence.
+    let semis = null;
+    const dir = text.match(/(up|down|higher|lower|by)\s*(\d+)\s*(?:semitones?|half[ -]?steps?|steps?|tones?)?/);
+    if (dir) {
+      semis = parseInt(dir[2], 10);
+      if (/down|lower/.test(dir[1])) semis = -semis;
+    } else if (/too high|\blower\b|\bdown\b/.test(text)) semis = -12;
+    else if (/too low|\bhigher\b|\bup\b/.test(text)) semis = 12;
+    if (/octave/.test(text)) {
+      const o = text.match(/(\d+)\s*octaves?/);
+      semis = Math.sign(semis || 1) * 12 * (o ? parseInt(o[1], 10) : 1);
+    }
+    if (semis == null || !semis) return { handled: false, reason: 'unclear', message: 'Transpose by how much? One answer, then I do it.' };
+    const n = transpose(song, semis, effectiveAim);
     return {
       handled: true,
-      explanation: 'Transposed ' + n + ' notes ' + (semis > 0 ? 'up' : 'down') + ' ' + Math.abs(semis) + ' semitone' + (Math.abs(semis) === 1 ? '' : 's') + '. Drums left as they are.',
+      explanation: 'Transposed ' + n + ' notes ' + (semis > 0 ? 'up' : 'down') + ' ' + Math.abs(semis) + ' semitone' + (Math.abs(semis) === 1 ? '' : 's') + '. Drums left as they are.' + aimNote,
     };
   }
   if (/\blouder|softer|quiet|volume\b/.test(text)) {
     const up = /louder/.test(text);
     const factor = up ? 1.25 : 0.8;
-    const n = scaleVelocity(song, factor, aim);
-    return { handled: true, explanation: 'Made ' + n + ' notes ' + (up ? 'louder' : 'softer') + ' (velocity x' + factor + ').' };
+    const n = scaleVelocity(song, factor, effectiveAim);
+    return { handled: true, explanation: 'Made ' + n + ' notes ' + (up ? 'louder' : 'softer') + ' (velocity x' + factor + ').' + aimNote };
   }
   if (/\bfaster|slower|tempo|bpm\b/.test(text)) {
     const cur = song.tempoMap[0] ? song.tempoMap[0].bpm : 120;

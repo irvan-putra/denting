@@ -294,6 +294,29 @@ function fixture() {
   ok(doc.includes('Checks of the written notes') && doc.includes('overlap'), 'handoff says where it falls short');
 }
 
+
+// aiming in words
+{
+  const song = fixture();
+  const res = interpret('make only the drums louder', song);
+  ok(res.handled, 'only-the-drums handled');
+  eq(song.tracks[1].notes[0].velocity, 127, 'drum velocity raised (clamped)');
+  eq(song.tracks[0].notes[0].velocity, 100, 'melody untouched by word aim');
+  ok(res.explanation.includes('Aimed at: drums'), 'explanation names the aim');
+}
+{
+  const song = fixture();
+  interpret('transpose beat 3 up 12', song);
+  eq(song.tracks[0].notes[2].pitch, 76, 'beat 3 (third beat) transposed');
+  eq(song.tracks[0].notes[0].pitch, 60, 'other beats untouched');
+}
+{
+  const song = fixture();
+  interpret('make the first half louder', song);
+  eq(song.tracks[0].notes[0].velocity, 125, 'first half louder');
+  eq(song.tracks[0].notes[3].velocity, 70, 'second half untouched');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
 
