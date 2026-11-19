@@ -73,13 +73,30 @@ Options that remain inside the constraints:
    available now.
 2. **Keyless on-device model (WebGPU, e.g. WebLLM -
    <https://github.com/mlc-ai/web-llm>).** No key, no quota, no cost,
-   nothing leaves the device. Open question before this can be more
-   than an experiment: actual music-edit-plan quality. A phone-browser
-   model is small; whether it can follow editing instructions well
-   enough for the spec's persona stories is untested. Next research
-   step is an offline evaluation (a fixed set of edit instructions run
-   against candidate local models, scored on whether the edit plan is
-   valid and in-aim), without spending or new connections.
+   nothing leaves the device. Quality was the open question, so a
+   first synthetic evaluation was run (2026-11-19, harness in
+   research/eval-local-model.html, runnable by anyone):
+
+   - Model: SmolLM2-135M-Instruct (ONNX q4, WASM/CPU) via
+     transformers.js in a plain browser page. 16 fixed requests: 10
+     inside the local edit vocabulary (should yield a structured
+     plan), 6 outside it (should yield "none").
+   - Result: 0 of 16 responses parsed as a valid plan. The model
+     wrote conversational prose around truncated or schema-breaking
+     JSON (e.g. an "op" value outside the allowed set) instead of
+     following the format.
+   - Runtime: median about 28 seconds per short request on a
+     server-class CPU (range 3-32 s), model load about 2.4 s after
+     cache. WebGPU was unavailable in the test browser, so the faster
+     GPU path could not be measured; a phone would likely be slower
+     than this CPU run.
+   - Reading: the smallest on-device tier is not viable for turning
+     words into edit plans. Larger on-device models (1B+) might follow
+     the format better but are heavier and slower to load on a phone;
+     that remains unevaluated. The deterministic local vocabulary in
+     the director already covers the measured instruction set
+     exactly, instantly and offline, so a local model currently adds
+     cost without adding capability.
 
 Either way, the engine's aim-enforcement already wraps any future
 model, so a model can never touch music outside the aim.
