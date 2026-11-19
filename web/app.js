@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.7';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.7';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.7';
-import { handoffDocument } from '../core/handoff.js?v=0.4.7';
-import { interpret } from '../core/director.js?v=0.4.7';
-import { listLibrary } from '../core/library.js?v=0.4.7';
-import { seedLibrary } from '../core/seeds.js?v=0.4.7';
-import { checkNotes } from '../core/checks.js?v=0.4.7';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.7';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.8';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.8';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.8';
+import { handoffDocument } from '../core/handoff.js?v=0.4.8';
+import { interpret } from '../core/director.js?v=0.4.8';
+import { listLibrary } from '../core/library.js?v=0.4.8';
+import { seedLibrary } from '../core/seeds.js?v=0.4.8';
+import { checkNotes } from '../core/checks.js?v=0.4.8';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.8';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -182,6 +182,22 @@ $('send').onclick = () => {
 $('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
 
 $('importBtn').onclick = () => $('import').click();
+$('loadExample').onclick = async () => {
+  if (song.tracks.length && !confirm('Replace the current unsaved piece with the public Balonku example?')) return;
+  try {
+    const res = await fetch('files/balonku/Balonku-assumed-timing.mid');
+    if (!res.ok) throw new Error('download failed: ' + res.status);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const keptLibrary = (song.libraryRefs || []).slice();
+    song = readSmf(bytes);
+    song.libraryRefs = keptLibrary;
+    if (!song.libraryRefs.length) seedLibrary(song);
+    song.revisions = [];
+    checkpoint(song, { request: 'load Balonku example', explanation: 'Loaded the public Balonku assumed-timing melody.', source: 'import' });
+    save(); render();
+    say('Loaded Balonku example: ' + song.tracks.length + ' parts, 87 notes, 56.5 seconds at the assumed 120 bpm.', 'ok');
+  } catch (e) { say('Could not load the example: ' + e.message, 'err'); }
+};
 $('import').onchange = async () => {
   const f = $('import').files[0];
   if (!f) return;
