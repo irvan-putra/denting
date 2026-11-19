@@ -45,11 +45,12 @@ const MODEL = 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
     for (const c of CASES) {
       const tq = performance.now();
       const r = await gen([{ role: 'system', content: SCHEMA }, { role: 'user', content: c.q }],
-        { max_new_tokens: 80, do_sample: false });
+        { max_new_tokens: 160, do_sample: false });
       const ms = Math.round(performance.now() - tq); lat.push(ms);
       const text = r[0].generated_text.at(-1).content.trim();
       let parsed = null;
-      try { const m = text.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : null; } catch (e) {}
+      const ms2 = text.match(/\{[^{}]*\}/g) || [];
+      for (const m of ms2) { try { parsed = JSON.parse(m); break; } catch (e) {} }
       if (parsed) parseOk++;
       const opGood = parsed && parsed.op === c.op;
       if (opGood) opOk++;
