@@ -81,22 +81,55 @@ Options that remain inside the constraints:
      transformers.js in a plain browser page. 16 fixed requests: 10
      inside the local edit vocabulary (should yield a structured
      plan), 6 outside it (should yield "none").
-   - Result: 0 of 16 responses parsed as a valid plan. The model
-     wrote conversational prose around truncated or schema-breaking
-     JSON (e.g. an "op" value outside the allowed set) instead of
-     following the format.
-   - Runtime: median about 28 seconds per short request on a
-     server-class CPU (range 3-32 s), model load about 2.4 s after
-     cache. WebGPU was unavailable in the test browser, so the faster
-     GPU path could not be measured; a phone would likely be slower
-     than this CPU run.
-   - Reading: the smallest on-device tier is not viable for turning
-     words into edit plans. Larger on-device models (1B+) might follow
-     the format better but are heavier and slower to load on a phone;
-     that remains unevaluated. The deterministic local vocabulary in
-     the director already covers the measured instruction set
-     exactly, instantly and offline, so a local model currently adds
-     cost without adding capability.
+   - Result: in this harness, with this model and configuration, 0 of
+     16 responses parsed as a valid plan, so no accuracy on either the
+     in-vocabulary or the out-of-vocabulary ("none") cases could be
+     measured at all. Inspected raw output wrote conversational prose
+     around truncated or schema-breaking JSON (e.g. an "op" value
+     outside the allowed set) instead of following the format.
+   - Runtime: across these 16 requests on one server-class CPU,
+     median about 28 seconds each (range 3-32 s); model load about
+     2.4 s warm. WebGPU was unavailable in the test browser, so the
+     GPU path could not be measured, and no phone-class device was
+     measured.
+   - Reading: this result is about one small model, one
+     quantization, one harness and one machine. It does not show
+     whether larger on-device models or a WebGPU path could follow
+     the format; both remain untested. It does show that turning
+     words into structured edit plans cannot be assumed from model
+     size alone, and that any candidate needs this kind of harness
+     run against it before it is considered.
 
 Either way, the engine's aim-enforcement already wraps any future
 model, so a model can never touch music outside the aim.
+
+### YuE assessed for this project (2026-11-19)
+
+The public YuE2 project
+(<https://github.com/multimodal-art-projection/YuE>) was suggested as
+a possible fit. Assessment from its source and README, plus one
+hosted-demo trial by another worker:
+
+- **Different task.** YuE2 generates a whole song (lyrics/style to an
+  ABC score to 48 kHz stereo audio) and supports regenerating from an
+  edited score. This project's open model need is an editing director
+  that turns a request about EXISTING music into a structured,
+  aim-checked edit plan. YuE2 does not read or edit MIDI and does not
+  produce edit plans.
+- **No MIDI in or out.** Output is audio plus an ABC score; the
+  hosted demo exposed audio only. An ABC-to-MIDI conversion would be
+  needed even to seed a draft here, and no converter has been
+  verified.
+- **Runtime does not fit the constraints.** The README recommends a
+  24 GB NVIDIA GPU (Linux, Python 3.12), with only experimental
+  lower-memory paths; no free no-account local or hosted route that
+  yields a score was established. A short audio clip was generated on
+  the public demo without an account, but that path yields audio, not
+  editable notation.
+- **Licence mismatch.** Code is Apache-2.0 but the model weights are
+  CC BY-NC 4.0 with added custom permissions, which would bind any
+  product using them to non-commercial terms. This project's code and
+  spec licence both permit commercial use.
+
+Verdict: set aside for this project. Noted for completeness; not an
+option under research.
