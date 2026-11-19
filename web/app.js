@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.4';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.4';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.4';
-import { handoffDocument } from '../core/handoff.js?v=0.4.4';
-import { interpret } from '../core/director.js?v=0.4.4';
-import { listLibrary } from '../core/library.js?v=0.4.4';
-import { seedLibrary } from '../core/seeds.js?v=0.4.4';
-import { checkNotes } from '../core/checks.js?v=0.4.4';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.4';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.5';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.5';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.5';
+import { handoffDocument } from '../core/handoff.js?v=0.4.5';
+import { interpret } from '../core/director.js?v=0.4.5';
+import { listLibrary } from '../core/library.js?v=0.4.5';
+import { seedLibrary } from '../core/seeds.js?v=0.4.5';
+import { checkNotes } from '../core/checks.js?v=0.4.5';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.5';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -92,6 +92,17 @@ function render() {
         const d = document.createElement('div');
         sc.appendChild(d);
         window.ABCJS.renderAbc(d, tune, { staffwidth: 680, responsive: 'resize', add_classes: true });
+        // Include long staff labels and outlying ledger lines in the viewport.
+        const svg = d.querySelector('svg');
+        if (svg) {
+          const box = svg.getBBox();
+          const width = Math.max(710, box.x + box.width + 15);
+          const height = Math.max(1, box.y + box.height + 15);
+          svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+          const wrap = svg.parentElement;
+          wrap.style.paddingBottom = `${height / width * 100}%`;
+          wrap.style.maxWidth = '100%';
+        }
       }
     }
     catch (e) { sc.innerHTML = '<p class="note">The score picture could not be drawn for these notes.</p>'; }
