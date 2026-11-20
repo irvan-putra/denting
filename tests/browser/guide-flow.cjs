@@ -1,0 +1,67 @@
+const {chromium}=require('/usr/share/code/resources/app/node_modules/playwright-core');
+const {spawn}=require('child_process');
+const BASE=process.argv[2];const SHOT=process.argv[3];
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+let server=null;
+(async()=>{
+if(BASE.includes('127.0.0.1')){server=spawn('python3',['-m','http.server','8127','--bind','127.0.0.1'],{cwd:process.env.HOME+'/denting',stdio:'ignore'});await delay(900);}
+const b=await chromium.launch({executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--autoplay-policy=no-user-gesture-required'],headless:true});
+const ctx=await b.newContext({viewport:{width:1200,height:1000},permissions:['clipboard-read','clipboard-write'],acceptDownloads:true});
+const p=await ctx.newPage();
+const errs=[];p.on('pageerror',e=>errs.push(e.message));
+const results=[];const ok=(n,c,x='')=>results.push((c?'PASS':'FAIL')+' '+n+(x?' :: '+x:''));
+const stepTitle=()=>p.locator('#guidePanel .guide-title').textContent();
+const stepPos=()=>p.locator('#guidePanel .guide-pos').textContent();
+await p.goto(BASE+'/?fresh=guide'+Date.now(),{waitUntil:'networkidle'});
+await p.locator('#guideBtn').click();
+ok('panel opens at welcome',(await stepTitle())==='welcome'&&(await stepPos())==='1 of 10');
+await p.locator('#guidePanel .guide-next').click();
+ok('next to purpose step',(await stepTitle())==='say what it is for');
+// change purpose
+await p.locator('#purpose').fill('a birthday song for my niece');
+await p.locator('#purpose').dispatchEvent('change');
+await p.waitForTimeout(300);
+ok('purpose edit advances',(await stepTitle())==='start from the example',await stepTitle());
+await p.locator('#loadExample').click();
+await p.waitForFunction(()=>document.querySelector('#guidePanel .guide-title').textContent==='hear it',null,{timeout:20000});
+ok('load advances to hear it',true);
+await p.locator('#play').click();
+await p.waitForTimeout(400);
+ok('play advances',(await stepTitle())==='say it your way',await stepTitle());
+await p.locator('#aimFrom').fill('');await p.locator('#aimTo').fill('');await p.locator('#request').fill('make it faster');
+await p.locator('#send').click();
+await p.waitForTimeout(400);
+ok('direct edit advances',(await stepTitle())==='aim at one moment',await stepTitle());
+await p.locator('#request').fill('insert fanfare at beat 65');
+await p.locator('#send').click();
+await p.waitForTimeout(400);
+ok('aimed edit advances',(await stepTitle())==='check it holds together',await stepTitle());
+await p.locator('#guidePanel .guide-next').click();
+ok('checks step next to bridge',(await stepTitle())==='bring an assistant in, by hand');
+// bridge flow
+await p.locator('#askAssistant').click();await p.waitForTimeout(200);
+await p.locator('#planInput').fill('{"op":"louder","track":"Supplied melody"}');
+await p.locator('#checkPlan').click();
+await p.waitForFunction(()=>document.querySelector('#status').textContent.includes('Plan checked'),null,{timeout:5000});
+await p.locator('#applyPlanBtn').click();
+await p.waitForTimeout(400);
+ok('plan apply advances',(await stepTitle())==='take it with you',await stepTitle());
+const dl=p.waitForEvent('download',{timeout:5000}).catch(()=>null);
+await p.locator('#export').click();
+await p.waitForTimeout(400);
+ok('export advances to final',(await stepTitle())==='that is the whole loop',await stepTitle());
+ok('mid downloaded',(await dl)!==null);
+await p.screenshot({path:SHOT+'-guided-final.png',fullPage:false});
+await p.locator('#guidePanel .guide-next').click();
+await p.waitForTimeout(200);
+ok('finish hides panel',!(await p.locator('#guidePanel').isVisible()));
+// stop button mid-way
+await p.locator('#guideBtn').click();
+await p.locator('#guidePanel .guide-next').click();
+await p.locator('#guidePanel .guide-stop').click();
+ok('stop hides panel',!(await p.locator('#guidePanel').isVisible()));
+ok('no page errors',errs.length===0,errs.join('|'));
+console.log(results.join('\n'));
+await b.close();if(server)server.kill();
+process.exit(results.some(r=>r.startsWith('FAIL'))?1:0);
+})().catch(e=>{console.error('HARNESS FAIL',e);if(server)server.kill();process.exit(2)});
