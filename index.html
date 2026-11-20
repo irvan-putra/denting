@@ -51,7 +51,7 @@
 <h1>denting <span class="sub">tell your story with music</span></h1>
 <p><a href="files/balonku/Balonku-assumed-timing.mid" download>Balonku MIDI</a> · <a href="files/balonku/Balonku-assumed-timing-score.pdf">Balonku score PDF</a> <span class="note">(our transcription: supplied pitches, assumed rhythm)</span><br>
 Yoga's arrangements of the same song, hosted with his permission: <a href="files/balonku/Balonku-Ada-Lima.mid" download>first version</a> · <a href="files/balonku/Balonku-Ada-Lima-Epic-Version.mid" download>Epic version</a></p>
-<p class="note">Draft v0.4.16. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.17. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up. <button id="guideBtn">guide me through a first song</button></p>
@@ -153,13 +153,13 @@ NAME" / "insert NAME at beat M", "prompt NAME: ...", and "note: ..."
 to think out loud without changing the music.</p>
 <section class="card" id="scoreCard">
   <h2>score</h2>
-  <p class="note">A reading picture of the written notes, snapped to a sixteenth-note grid. Loudness, fine timing, tempo/meter changes and independent overlapping voices are not shown. Ties between two-bar groups are omitted; the .mid file stays the source of truth.</p>
+  <p class="note">A reading picture of the written notes, snapped to a sixteenth-note grid. Loudness, fine timing, tempo/meter changes and independent overlapping voices are not shown. It is drawn in two-bar groups, each restating clef and tempo, and a group never splits across a printed page; the last page can be short. Ties between two-bar groups are omitted; the .mid file stays the source of truth.</p>
   <div id="score"></div>
   <div class="row">
     <button id="printBtn" type="button">Print score</button>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.16"></script>
+<script type="module" src="web/app.js?v=0.4.17"></script>
 </body>
 </html>

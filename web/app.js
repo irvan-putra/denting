@@ -1,14 +1,14 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.16';
-import { newSong, tickToBeat, tickToSeconds, secondsToTick, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.16';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.16';
-import { handoffDocument } from '../core/handoff.js?v=0.4.16';
-import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.16';
-import { listLibrary } from '../core/library.js?v=0.4.16';
-import { seedLibrary } from '../core/seeds.js?v=0.4.16';
-import { checkNotes } from '../core/checks.js?v=0.4.16';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.16';
-import { startGuide } from './guide.js?v=0.4.16';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.17';
+import { newSong, tickToBeat, tickToSeconds, secondsToTick, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.17';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.17';
+import { handoffDocument } from '../core/handoff.js?v=0.4.17';
+import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.17';
+import { listLibrary } from '../core/library.js?v=0.4.17';
+import { seedLibrary } from '../core/seeds.js?v=0.4.17';
+import { checkNotes } from '../core/checks.js?v=0.4.17';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.17';
+import { startGuide } from './guide.js?v=0.4.17';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -107,9 +107,10 @@ function render() {
         const svg = d.querySelector('svg');
         if (svg) {
           const box = svg.getBBox();
-          const width = Math.max(710, box.x + box.width + 15);
-          const height = Math.max(1, box.y + box.height + 15);
-          svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+          const vx = Math.min(0, box.x - 15), vy = Math.min(0, box.y - 15);
+          const width = Math.max(710, box.x + box.width + 15 - vx);
+          const height = Math.max(1, box.y + box.height + 15 - vy);
+          svg.setAttribute('viewBox', `${vx} ${vy} ${width} ${height}`);
           const wrap = svg.parentElement;
           wrap.style.paddingBottom = `${height / width * 100}%`;
           wrap.style.maxWidth = '100%';
