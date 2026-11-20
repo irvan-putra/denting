@@ -3,8 +3,8 @@
 // what the music is for, its structure, its timing, and the moments that
 // matter. Both leave the product together.
 
-import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.4.12';
-import { checkNotes } from './checks.js?v=0.4.12';
+import { GM_PROGRAMS, tickToSeconds, tickToBeat, songEndTick } from './model.js?v=0.4.13';
+import { checkNotes } from './checks.js?v=0.4.13';
 
 function fmtTime(sec) {
   const m = Math.floor(sec / 60), s = sec - m * 60;

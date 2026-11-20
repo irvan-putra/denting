@@ -1,13 +1,14 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.12';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.12';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.12';
-import { handoffDocument } from '../core/handoff.js?v=0.4.12';
-import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.12';
-import { listLibrary } from '../core/library.js?v=0.4.12';
-import { seedLibrary } from '../core/seeds.js?v=0.4.12';
-import { checkNotes } from '../core/checks.js?v=0.4.12';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.12';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.13';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.13';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.13';
+import { handoffDocument } from '../core/handoff.js?v=0.4.13';
+import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.13';
+import { listLibrary } from '../core/library.js?v=0.4.13';
+import { seedLibrary } from '../core/seeds.js?v=0.4.13';
+import { checkNotes } from '../core/checks.js?v=0.4.13';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.13';
+import { startGuide } from './guide.js?v=0.4.13';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -26,12 +27,14 @@ function load() {
 }
 function save() {
   localStorage.setItem(STORE_KEY, JSON.stringify({ state: snapshot(song), revisions: song.revisions }));
+  window.dispatchEvent(new CustomEvent('denting:saved'));
 }
 
 function say(msg, cls = '') {
   const el = $('status');
   el.textContent = msg;
   el.className = cls;
+  window.dispatchEvent(new CustomEvent('denting:status', { detail: { msg, cls } }));
 }
 
 // While the example file is being fetched, edits are paused so a request
@@ -254,6 +257,7 @@ $('applyPlanBtn').onclick = () => {
   $('applyPlanBtn').disabled = true;
   $('planPreview').textContent = '';
   say(res.explanation, 'ok');
+  window.dispatchEvent(new CustomEvent('denting:action', { detail: 'plan-applied' }));
 };
 
 $('importBtn').onclick = () => $('import').click();
@@ -309,6 +313,7 @@ function download(name, blob) {
 $('export').onclick = () => {
   if (!song.tracks.length) { say('Nothing to export yet.', 'err'); return; }
   download('denting.mid', new Blob([writeSmf(song)], { type: 'audio/midi' }));
+  window.dispatchEvent(new CustomEvent('denting:action', { detail: 'export-mid' }));
   say('Exported denting.mid. Open it in any music software.', 'ok');
 };
 
@@ -340,11 +345,14 @@ $('play').onclick = () => {
     }
   }
   say('Playing a plain-synth preview. The .mid carries the real instrument numbers.', 'ok');
+  window.dispatchEvent(new CustomEvent('denting:action', { detail: 'play' }));
 };
 $('stop').onclick = () => {
   for (const n of nodes) { try { n.stop(); } catch {} }
   nodes = [];
 };
+
+$('guideBtn').onclick = startGuide;
 
 render();
 say(song.tracks.length ? 'Your piece from last time is still here.' : 'Ready. This draft never sends your work anywhere.', 'ok');

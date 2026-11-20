@@ -26,6 +26,11 @@
   td, th { text-align: left; padding: 0.2rem 0.4rem; border-bottom: 1px solid #8883; }
   fieldset { border: 1px solid #8885; border-radius: 6px; margin: 0.6rem 0; }
   legend { font-size: 0.85rem; opacity: 0.75; }
+  #guidePanel { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0.6rem; width: min(44rem, calc(100vw - 1.2rem)); box-sizing: border-box; background: Canvas; color: CanvasText; border: 1px solid #888; border-radius: 8px; padding: 0.6rem 0.8rem; box-shadow: 0 4px 18px #0004; z-index: 10; }
+  #guidePanel .guide-title { font-weight: 600; }
+  #guidePanel .guide-pos { float: right; font-size: 0.8rem; opacity: 0.6; }
+  #guidePanel .guide-text { margin: 0.3rem 0; }
+  #guidePanel .guide-why { font-size: 0.82rem; opacity: 0.7; margin: 0.2rem 0 0.4rem; }
   @media print {
     body > :not(#scoreCard) { display: none !important; }
     body { max-width: none; padding: 0; color: black; background: white; }
@@ -45,10 +50,20 @@
 <h1>denting <span class="sub">tell your story with music</span></h1>
 <p><a href="files/balonku/Balonku-assumed-timing.mid" download>Balonku MIDI</a> · <a href="files/balonku/Balonku-assumed-timing-score.pdf">Balonku score PDF</a> <span class="note">(our transcription: supplied pitches, assumed rhythm)</span><br>
 Yoga's arrangements of the same song, hosted with his permission: <a href="files/balonku/Balonku-Ada-Lima.mid" download>first version</a> · <a href="files/balonku/Balonku-Ada-Lima-Epic-Version.mid" download>Epic version</a></p>
-<p class="note">Draft v0.4.12. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.13. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
-professional musician can pick up.</p>
+professional musician can pick up. <button id="guideBtn">guide me through a first song</button></p>
+
+<div id="guidePanel" style="display:none" role="dialog" aria-label="first song guide">
+  <span class="guide-pos"></span>
+  <div class="guide-title"></div>
+  <p class="guide-text"></p>
+  <p class="guide-why"></p>
+  <button class="guide-back" type="button">back</button>
+  <button class="guide-next primary" type="button">next</button>
+  <button class="guide-stop" type="button">stop the guide</button>
+</div>
 
 <fieldset>
   <legend>what is this music for?</legend>
@@ -138,6 +153,6 @@ to think out loud without changing the music.</p>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.12"></script>
+<script type="module" src="web/app.js?v=0.4.13"></script>
 </body>
 </html>
