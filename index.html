@@ -31,6 +31,7 @@
   #guidePanel .guide-pos { float: right; font-size: 0.8rem; opacity: 0.6; }
   #guidePanel .guide-text { margin: 0.3rem 0; }
   #guidePanel .guide-why { font-size: 0.82rem; opacity: 0.7; margin: 0.2rem 0 0.4rem; }
+  .guide-scroll-target { scroll-margin-bottom: 200px; scroll-margin-top: 12px; }
   @media print {
     body > :not(#scoreCard) { display: none !important; }
     body { max-width: none; padding: 0; color: black; background: white; }
@@ -50,7 +51,7 @@
 <h1>denting <span class="sub">tell your story with music</span></h1>
 <p><a href="files/balonku/Balonku-assumed-timing.mid" download>Balonku MIDI</a> · <a href="files/balonku/Balonku-assumed-timing-score.pdf">Balonku score PDF</a> <span class="note">(our transcription: supplied pitches, assumed rhythm)</span><br>
 Yoga's arrangements of the same song, hosted with his permission: <a href="files/balonku/Balonku-Ada-Lima.mid" download>first version</a> · <a href="files/balonku/Balonku-Ada-Lima-Epic-Version.mid" download>Epic version</a></p>
-<p class="note">Draft v0.4.13. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.14. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up. <button id="guideBtn">guide me through a first song</button></p>
@@ -153,6 +154,6 @@ to think out loud without changing the music.</p>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.13"></script>
+<script type="module" src="web/app.js?v=0.4.14"></script>
 </body>
 </html>
