@@ -10,9 +10,9 @@
 //    request is wired up. When no model is configured, the director says
 //    so plainly instead of pretending.
 
-import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.4.11';
-import { secondsToTick } from './model.js?v=0.4.11';
-import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.4.11';
+import { transpose, scaleVelocity, setTempo, normalizeAim, addMarker } from './engine.js?v=0.4.12';
+import { secondsToTick, GM_PROGRAMS as GM_PROGRAMS_REF, songEndTick as songEndTickRef } from './model.js?v=0.4.12';
+import { saveFragment, insertFragment, savePrompt, listLibrary } from './library.js?v=0.4.12';
 
 function parseClock(text) {
   const m = text.match(/(\d+):(\d\d)/);
@@ -195,4 +195,111 @@ export function interpret(request, song, aim) {
       'Local commands I can do now: transpose up/down, louder/softer, faster/slower. ' +
       'The model choice is an open decision (see docs/decisions.md).',
   };
+}
+
+// --- Manual assistant bridge ---
+// No model is built in. The person can copy a brief of the piece to an
+// assistant they already use and paste back a plan. A plan uses exactly
+// the operations the typed commands have, no more, and goes through the
+// same engine and aim enforcement. The schema below is the one the
+// evaluation harness uses, so a future wired-in model speaks it too.
+
+export const PLAN_SCHEMA = 'You convert a music edit request into JSON only, no other text.\n' +
+  'Schema: {"op": one of "transpose","louder","softer","faster","slower","tempo","none",\n' +
+  '"track": "all" or a part name, "fromBeat": integer or null, "toBeat": integer or null,\n' +
+  '"amount": integer semitones or null, "bpm": integer or null}\n' +
+  'Use op "none" when the request is not a note/tempo edit of existing music.\n' +
+  'Beats count from 0. Only the listed operations exist; nothing else will be applied.';
+
+export function planBrief(song, requestText) {
+  const lines = [];
+  lines.push('You are helping edit a piece of music in denting, a local MIDI editor.');
+  lines.push('Reply with ONE JSON object only, no other text.');
+  lines.push('');
+  lines.push('The piece:');
+  lines.push('- purpose: ' + (song.purpose || '(not stated)'));
+  if (song.tracks.length) {
+    lines.push('- parts: ' + song.tracks.map(t =>
+      (t.name || '(untitled)') + ' (' + (t.isDrums ? 'drums' : (GM_PROGRAMS_REF[t.program] || 'instrument')) + ', ' + t.notes.length + ' notes)').join('; '));
+    lines.push('- length: about ' + Math.round(songEndTickRef(song) / song.ticksPerBeat) + ' beats at ' + Math.round(song.tempoMap[0].bpm) + ' bpm');
+  } else {
+    lines.push('- no music yet');
+  }
+  if (song.markers && song.markers.length) {
+    lines.push('- markers: ' + song.markers.map(mk => 'beat ' + (mk.tick / song.ticksPerBeat) + ' "' + mk.label + '"').join('; '));
+  }
+  lines.push('');
+  lines.push(PLAN_SCHEMA);
+  lines.push('');
+  lines.push('My request: ' + (requestText || '(describe your edit here)'));
+  return lines.join('\n');
+}
+
+
+function planAim(song, plan) {
+  const aim = { tracks: 'all', fromBeat: null, toBeat: null };
+  if (plan.track != null && plan.track !== 'all') {
+    const want = String(plan.track).toLowerCase();
+    const idx = song.tracks.findIndex(t => (t.name || '').toLowerCase() === want);
+    if (idx < 0) return { error: 'No part named "' + plan.track + '". Parts here: ' + (song.tracks.map(t => t.name || '(untitled)').join(', ') || 'none yet') + '.' };
+    aim.tracks = [idx];
+  }
+  for (const k of ['fromBeat', 'toBeat']) {
+    if (plan[k] != null) {
+      if (typeof plan[k] !== 'number' || !isFinite(plan[k])) return { error: k + ' must be a number or null.' };
+      aim[k] = plan[k];
+    }
+  }
+  return { aim };
+}
+
+// Apply one checked plan. Pure engine calls: never throws on bad input,
+// returns handled:false with a reason instead. Callers that preview wrap
+// it in snapshot/restore.
+export function applyPlan(song, plan) {
+  if (!plan || typeof plan !== 'object' || Array.isArray(plan)) {
+    return { handled: false, reason: 'invalid', message: 'The plan is not a JSON object.' };
+  }
+  const op = plan.op;
+  if (op === 'none') {
+    return { handled: false, reason: 'info', message: 'The plan says no edit applies (op "none"). Nothing was changed.' };
+  }
+  const OPS = ['transpose', 'louder', 'softer', 'faster', 'slower', 'tempo'];
+  if (!OPS.includes(op)) {
+    return { handled: false, reason: 'invalid', message: 'Unknown op "' + op + '". Only ' + OPS.join(', ') + ' and none exist.' };
+  }
+  const { aim, error } = planAim(song, plan);
+  if (error) return { handled: false, reason: 'invalid', message: error };
+  // Plan beats are 0-based (the brief says so), unlike typed words.
+  const aimParts = [];
+  if (aim.tracks !== 'all') aimParts.push(aim.tracks.map(i => song.tracks[i] ? (song.tracks[i].name || 'track ' + (i + 1)) : '?').join(', '));
+  if (aim.fromBeat != null || aim.toBeat != null) aimParts.push('beats ' + (aim.fromBeat ?? 0) + (aim.toBeat != null ? ' to ' + aim.toBeat : ' on'));
+  const aimNote = aimParts.length ? ' Aimed at: ' + aimParts.join(', ') + '.' : '';
+  if (op === 'transpose') {
+    const semis = plan.amount;
+    if (typeof semis !== 'number' || !Number.isInteger(semis) || semis === 0 || Math.abs(semis) > 48) {
+      return { handled: false, reason: 'invalid', message: 'transpose needs "amount": a nonzero whole number of semitones (48 at most).' };
+    }
+    const n = transpose(song, semis, aim);
+    return { handled: true, explanation: 'Transposed ' + n + ' notes ' + (semis > 0 ? 'up' : 'down') + ' ' + Math.abs(semis) + ' semitone' + (Math.abs(semis) === 1 ? '' : 's') + '. Drums left as they are.' + aimNote };
+  }
+  if (op === 'louder' || op === 'softer') {
+    const up = op === 'louder';
+    const factor = up ? 1.25 : 0.8;
+    const n = scaleVelocity(song, factor, aim);
+    return { handled: true, explanation: 'Made ' + n + ' notes ' + op + ' (velocity x' + factor + ').' + aimNote };
+  }
+  const cur = song.tempoMap[0] ? song.tempoMap[0].bpm : 120;
+  if (op === 'faster' || op === 'slower') {
+    const bpm = Math.round(cur * (op === 'faster' ? 1.1 : 0.9));
+    setTempo(song, bpm);
+    return { handled: true, explanation: 'Tempo set to ' + bpm + ' bpm (was ' + Math.round(cur) + ').' };
+  }
+  // tempo
+  const bpm = plan.bpm;
+  if (typeof bpm !== 'number' || !Number.isInteger(bpm) || bpm < 20 || bpm > 400) {
+    return { handled: false, reason: 'invalid', message: 'tempo needs "bpm": a whole number between 20 and 400.' };
+  }
+  setTempo(song, bpm);
+  return { handled: true, explanation: 'Tempo set to ' + bpm + ' bpm (was ' + Math.round(cur) + ').' };
 }

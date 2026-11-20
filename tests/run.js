@@ -3,7 +3,7 @@ import { writeSmf, readSmf } from '../core/smf.js';
 import { newSong, addTrack, tickToSeconds, GM_PROGRAMS } from '../core/model.js';
 import { applyAimed, transpose, scaleVelocity, setTempo, addMarker, checkpoint, restoreRevision, snapshot } from '../core/engine.js';
 import { describeRoles, handoffDocument } from '../core/handoff.js';
-import { interpret } from '../core/director.js';
+import { interpret, applyPlan, planBrief } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
 import { songToAbc, pitchToAbc, partToAbc, partToAbcBars, songToAbcTunes, drumToAbc } from '../core/abc.js';
@@ -410,6 +410,57 @@ function fixture() {
   eq(tunes.length, 3, '20 bars in 8-bar chunks -> 3 tunes');
   ok(tunes[0].includes('T:') && !tunes[1].includes('T:'), 'title only on first chunk');
   eq(partToAbcBars(song, song.tracks[0]).length, 20, 'one entry per bar');
+}
+
+// --- manual assistant bridge: applyPlan / planBrief ---
+{
+  const song = fixture();
+  const res = applyPlan(song, { op: 'transpose', amount: 2, track: 'all', fromBeat: null, toBeat: null });
+  ok(res.handled, 'plan: transpose applies');
+  eq(song.tracks[0].notes[0].pitch, 62, 'plan: melody shifted up 2');
+  eq(song.tracks[1].notes[0].pitch, 36, 'plan: drums left alone');
+}
+{
+  const song = fixture();
+  const res = applyPlan(song, { op: 'transpose', amount: -1, track: 'melody', fromBeat: 1, toBeat: 2 });
+  ok(res.handled && res.explanation.includes('melody'), 'plan: aimed transpose names the part');
+  eq(song.tracks[0].notes[0].pitch, 60, 'plan: note before aim untouched');
+  eq(song.tracks[0].notes[1].pitch, 61, 'plan: note inside aim shifted');
+  eq(song.tracks[0].notes[3].pitch, 65, 'plan: note after aim untouched');
+  eq(song.tracks[1].notes[0].velocity, 110, 'plan: other track untouched');
+}
+{
+  const song = fixture();
+  const res = applyPlan(song, { op: 'transpose', amount: 2, track: 'oboe' });
+  ok(!res.handled && res.message.includes('oboe'), 'plan: unknown part refused by name');
+  eq(song.tracks[0].notes[0].pitch, 60, 'plan: refused plan changes nothing');
+}
+{
+  const song = fixture();
+  ok(!applyPlan(song, { op: 'arpeggiate' }).handled, 'plan: unknown op refused');
+  ok(!applyPlan(song, { op: 'transpose' }).handled, 'plan: transpose without amount refused');
+  ok(!applyPlan(song, null).handled, 'plan: non-object refused');
+  const resNone = applyPlan(song, { op: 'none' });
+  ok(!resNone.handled && resNone.reason === 'info', 'plan: none is an honest no-op');
+  eq(song.tracks[0].notes[0].pitch, 60, 'plan: refusals never move notes');
+}
+{
+  const song = fixture();
+  const res = applyPlan(song, { op: 'tempo', bpm: 90 });
+  ok(res.handled && song.tempoMap[0].bpm === 90, 'plan: tempo sets bpm');
+  ok(!applyPlan(song, { op: 'tempo', bpm: 9000 }).handled, 'plan: absurd bpm refused');
+  const v0 = song.tracks[0].notes[0].velocity;
+  applyPlan(song, { op: 'louder' });
+  ok(song.tracks[0].notes[0].velocity > v0, 'plan: louder raises velocity');
+}
+{
+  const song = fixture();
+  const brief = planBrief(song, 'make the melody gentler');
+  ok(brief.includes('company awards night'), 'brief: carries the purpose');
+  ok(brief.includes('melody') && brief.includes('drums'), 'brief: names the parts');
+  ok(brief.includes('"op"') && brief.includes('none'), 'brief: carries the schema');
+  ok(brief.includes('make the melody gentler'), 'brief: carries the request');
+  ok(brief.includes('Beats count from 0'), 'brief: states the beat convention');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');

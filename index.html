@@ -45,7 +45,7 @@
 <h1>denting <span class="sub">tell your story with music</span></h1>
 <p><a href="files/balonku/Balonku-assumed-timing.mid" download>Balonku MIDI</a> · <a href="files/balonku/Balonku-assumed-timing-score.pdf">Balonku score PDF</a> <span class="note">(our transcription: supplied pitches, assumed rhythm)</span><br>
 Yoga's arrangements of the same song, hosted with his permission: <a href="files/balonku/Balonku-Ada-Lima.mid" download>first version</a> · <a href="files/balonku/Balonku-Ada-Lima-Epic-Version.mid" download>Epic version</a></p>
-<p class="note">Draft v0.4.11. Everything runs locally in your browser; your
+<p class="note">Draft v0.4.12. Everything runs locally in your browser; your
 work never leaves your device unless you export it. You direct the music
 with words; the result is a real .mid file plus handover notes a
 professional musician can pick up.</p>
@@ -67,6 +67,24 @@ professional musician can pick up.</p>
       <input type="text" id="aimTo" size="3" value="69"></span>
   </div>
   <div id="log"></div>
+</fieldset>
+
+<fieldset>
+  <legend>ask an assistant (manual)</legend>
+  <p class="note">No AI is built into denting. This copies a short brief of the
+  piece and the exact edit vocabulary; you paste it to an assistant you
+  already use, then paste its plan back. denting checks a plan and shows
+  what it would do before touching the music. Plans can only use the same
+  edits as typed commands; composing a new piece from a description is not
+  possible this way.</p>
+  <div><button id="askAssistant">Copy brief for an assistant</button></div>
+  <textarea id="briefOut" rows="8" readonly style="display:none"></textarea>
+  <textarea id="planInput" rows="4" placeholder="paste the assistant's plan JSON here"></textarea>
+  <div>
+    <button id="checkPlan">Check plan</button>
+    <button id="applyPlanBtn" disabled>Apply plan</button>
+  </div>
+  <p class="note" id="planPreview"></p>
 </fieldset>
 
 <fieldset>
@@ -120,6 +138,6 @@ to think out loud without changing the music.</p>
   </div>
 </section>
 <script src="web/vendor/abcjs-basic-min.js"></script>
-<script type="module" src="web/app.js?v=0.4.11"></script>
+<script type="module" src="web/app.js?v=0.4.12"></script>
 </body>
 </html>

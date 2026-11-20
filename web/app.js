@@ -1,13 +1,13 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.11';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.11';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.11';
-import { handoffDocument } from '../core/handoff.js?v=0.4.11';
-import { interpret } from '../core/director.js?v=0.4.11';
-import { listLibrary } from '../core/library.js?v=0.4.11';
-import { seedLibrary } from '../core/seeds.js?v=0.4.11';
-import { checkNotes } from '../core/checks.js?v=0.4.11';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.11';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.12';
+import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.12';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.12';
+import { handoffDocument } from '../core/handoff.js?v=0.4.12';
+import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.12';
+import { listLibrary } from '../core/library.js?v=0.4.12';
+import { seedLibrary } from '../core/seeds.js?v=0.4.12';
+import { checkNotes } from '../core/checks.js?v=0.4.12';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.12';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -39,7 +39,7 @@ function say(msg, cls = '') {
 let busy = false;
 function setBusy(on) {
   busy = on;
-  ['send', 'request', 'importBtn', 'loadExample'].forEach(id => { $(id).disabled = on; });
+  ['send', 'request', 'importBtn', 'loadExample', 'askAssistant', 'checkPlan', 'applyPlanBtn', 'planInput'].forEach(id => { $(id).disabled = on; });
 }
 
 function render() {
@@ -189,6 +189,72 @@ $('send').onclick = () => {
   }
 };
 $('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
+
+// --- manual assistant bridge ---
+let pendingPlan = null;
+
+$('askAssistant').onclick = async () => {
+  const brief = planBrief(song, $('request').value.trim());
+  $('briefOut').value = brief;
+  $('briefOut').style.display = '';
+  try {
+    await navigator.clipboard.writeText(brief);
+    say('Brief copied. Paste it to an assistant you use, then bring its plan JSON back below.', 'ok');
+  } catch (e) {
+    say('Clipboard was blocked; the brief is in the box under the button, copy it manually.', 'err');
+  }
+};
+
+$('planInput').addEventListener('input', () => {
+  pendingPlan = null;
+  $('applyPlanBtn').disabled = true;
+  $('planPreview').textContent = '';
+});
+
+$('checkPlan').onclick = () => {
+  pendingPlan = null;
+  $('applyPlanBtn').disabled = true;
+  $('planPreview').textContent = '';
+  const raw = $('planInput').value.trim();
+  if (!raw) { say('Paste a plan first.', 'err'); return; }
+  let plan = null;
+  const candidates = [raw];
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (m && m[0] !== raw) candidates.push(m[0]);
+  for (const c of candidates) { try { plan = JSON.parse(c); break; } catch (e) {} }
+  if (!plan) { say('That is not JSON denting can read. Ask the assistant for one JSON object only.', 'err'); return; }
+  const before = snapshot(song);
+  let res;
+  try { res = applyPlan(song, plan); } finally { restore(song, before); }
+  if (res.handled) {
+    pendingPlan = plan;
+    $('applyPlanBtn').disabled = false;
+    $('planPreview').textContent = 'Plan checked. It would: ' + res.explanation;
+    say('Plan checked, nothing changed yet. Read what it would do, then Apply plan.', 'ok');
+  } else {
+    say(res.message || 'That plan is not something denting can apply.', res.reason === 'info' ? 'ok' : 'err');
+  }
+};
+
+$('applyPlanBtn').onclick = () => {
+  if (!pendingPlan) return;
+  const before = snapshot(song);
+  let res;
+  try { res = applyPlan(song, pendingPlan); }
+  catch (e) { restore(song, before); say('That change failed and nothing was changed: ' + e.message, 'err'); return; }
+  if (!res.handled) { restore(song, before); say(res.message || 'Plan not applied.', 'err'); return; }
+  checkpoint(song, { request: 'assistant plan', explanation: res.explanation });
+  save(); render();
+  const log = $('log');
+  const div = document.createElement('div');
+  div.className = 'turn';
+  div.innerHTML = '<span class="req">assistant plan</span><br>' + escapeHtml(res.explanation);
+  log.prepend(div);
+  pendingPlan = null;
+  $('applyPlanBtn').disabled = true;
+  $('planPreview').textContent = '';
+  say(res.explanation, 'ok');
+};
 
 $('importBtn').onclick = () => $('import').click();
 $('loadExample').onclick = async () => {
