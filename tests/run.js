@@ -463,5 +463,32 @@ function fixture() {
   ok(brief.includes('Beats count from 0'), 'brief: states the beat convention');
 }
 
+{
+  const song = fixture();
+  const r1 = interpret('make it slower', song);
+  ok(r1.handled && song.tempoMap[0].bpm === 90, 'slower sets tempo (not trapped by transpose)');
+  const song2 = fixture();
+  const r2 = interpret('slower', song2);
+  ok(r2.handled && song2.tempoMap[0].bpm === 90, 'bare "slower" sets tempo');
+  const song3 = fixture();
+  const r3 = interpret('make it faster', song3);
+  ok(r3.handled && song3.tempoMap[0].bpm === 110, 'faster still sets tempo');
+  const song4 = fixture();
+  const r4 = interpret('make it lower', song4);
+  ok(r4.handled || (r4.reason === 'unclear'), 'lower still routes to transpose');
+}
+
+{
+  const song = fixture();
+  const b1 = planBrief(song, 'make it faster');
+  ok(b1.includes('My request: make it faster'), 'brief carries the typed request');
+  ok(!b1.includes('(describe your edit here)'), 'brief with a request has no placeholder');
+  const b2 = planBrief(song, '');
+  ok(b2.includes('(describe your edit here)'), 'brief without a request keeps the placeholder');
+  const song2 = fixture();
+  const r = applyPlan(song2, { op: 'none', track: 'all', fromBeat: null, toBeat: null, amount: null, bpm: null });
+  ok(!r.handled && r.reason === 'info', 'op none is refused as info, not applied');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

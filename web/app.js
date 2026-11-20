@@ -1,14 +1,14 @@
 // denting web app: local-first direction of a piece of music.
-import { readSmf, writeSmf } from '../core/smf.js?v=0.4.14';
-import { newSong, tickToBeat, tickToSeconds, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.14';
-import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.14';
-import { handoffDocument } from '../core/handoff.js?v=0.4.14';
-import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.14';
-import { listLibrary } from '../core/library.js?v=0.4.14';
-import { seedLibrary } from '../core/seeds.js?v=0.4.14';
-import { checkNotes } from '../core/checks.js?v=0.4.14';
-import { songToAbcTunes } from '../core/abc.js?v=0.4.14';
-import { startGuide } from './guide.js?v=0.4.14';
+import { readSmf, writeSmf } from '../core/smf.js?v=0.4.15';
+import { newSong, tickToBeat, tickToSeconds, secondsToTick, songEndTick, GM_PROGRAMS, GM_DRUMS } from '../core/model.js?v=0.4.15';
+import { checkpoint, restoreRevision, snapshot, restore } from '../core/engine.js?v=0.4.15';
+import { handoffDocument } from '../core/handoff.js?v=0.4.15';
+import { interpret, planBrief, applyPlan } from '../core/director.js?v=0.4.15';
+import { listLibrary } from '../core/library.js?v=0.4.15';
+import { seedLibrary } from '../core/seeds.js?v=0.4.15';
+import { checkNotes } from '../core/checks.js?v=0.4.15';
+import { songToAbcTunes } from '../core/abc.js?v=0.4.15';
+import { startGuide } from './guide.js?v=0.4.15';
 
 const STORE_KEY = 'denting.song.v1';
 const $ = id => document.getElementById(id);
@@ -130,12 +130,11 @@ function render() {
     rev.querySelectorAll('button[data-rev]').forEach(b => b.onclick = () => {
       checkpoint(song, { request: '(state before returning)', source: 'auto' });
       restoreRevision(song, parseInt(b.dataset.rev, 10));
-      save(); const pb = $('printBtn');
-if (pb) pb.onclick = () => window.print();
-render();
+      save(); render();
       say('Returned to that earlier state. The state you left is kept above.', 'ok');
     });
   }
+  if ($('playhead')) showPlayhead(seekSec);
 }
 
 function escapeHtml(s) {
@@ -193,11 +192,20 @@ $('send').onclick = () => {
 };
 $('request').addEventListener('keydown', e => { if (e.key === 'Enter') $('send').click(); });
 
+$('printBtn').onclick = () => window.print();
+$('printBtn2').onclick = () => window.print();
+
 // --- manual assistant bridge ---
 let pendingPlan = null;
 
 $('askAssistant').onclick = async () => {
-  const brief = planBrief(song, $('request').value.trim());
+  const requestText = $('request').value.trim();
+  if (!requestText) {
+    say('Type your request first (for example "make it faster"), then press this button again. The brief carries your request to the assistant; without one it can only answer "none".', 'err');
+    $('request').focus();
+    return;
+  }
+  const brief = planBrief(song, requestText);
   $('briefOut').value = brief;
   $('briefOut').style.display = '';
   try {
@@ -226,6 +234,11 @@ $('checkPlan').onclick = () => {
   if (m && m[0] !== raw) candidates.push(m[0]);
   for (const c of candidates) { try { plan = JSON.parse(c); break; } catch (e) {} }
   if (!plan) { say('That is not JSON denting can read. Ask the assistant for one JSON object only.', 'err'); return; }
+  if (plan && plan.op === 'none') {
+    $('planPreview').textContent = 'This plan says "none": it changes nothing. The assistant likely did not receive your actual request. Send it the edit you want (for example "make the whole piece faster") and paste its new plan back.';
+    say('The plan says "none" - it changes nothing. See the note above the box.', 'err');
+    return;
+  }
   const before = snapshot(song);
   let res;
   try { res = applyPlan(song, plan); } finally { restore(song, before); }
@@ -322,34 +335,82 @@ $('exportHandoff').onclick = () => {
   say('Exported the handover notes: purpose, structure, timing and the moments that matter.', 'ok');
 };
 
-// --- simple local playback preview ---
+// --- simple local playback preview, with a seekable timeline ---
 let audio = null, nodes = [];
+let seekSec = 0, playStartCtx = 0, playStartSec = 0, playRaf = 0;
+
+function songDurationSec() {
+  return song.tracks.length ? tickToSeconds(song, songEndTick(song)) : 0;
+}
+
+function showPlayhead(sec) {
+  const dur = songDurationSec();
+  const beat = tickToBeat(song, secondsToTick(song, Math.min(sec, dur)));
+  const s = Math.min(sec, dur);
+  $('playPos').textContent = dur ? 'beat ' + beat.toFixed(1) + ' \u00b7 ' + s.toFixed(1) + 's of ' + dur.toFixed(1) + 's' : '';
+  const slider = $('playhead');
+  slider.max = Math.max(1, Math.round(dur * 10));
+  if (document.activeElement !== slider) slider.value = Math.round(s * 10);
+}
+
+function stopPlayback() {
+  for (const n of nodes) { try { n.stop(); } catch {} }
+  nodes = [];
+  if (playRaf) { cancelAnimationFrame(playRaf); playRaf = 0; }
+}
+
+function trackPlayhead() {
+  const dur = songDurationSec();
+  const pos = playStartSec + (audio.currentTime - playStartCtx);
+  if (pos >= dur) {
+    stopPlayback();
+    seekSec = 0;
+    showPlayhead(0);
+    return;
+  }
+  seekSec = pos;
+  showPlayhead(pos);
+  playRaf = requestAnimationFrame(trackPlayhead);
+}
+
+$('playhead').oninput = () => {
+  seekSec = parseInt($('playhead').value, 10) / 10;
+  showPlayhead(seekSec);
+};
+
 $('play').onclick = () => {
   if (!song.tracks.length) { say('Nothing to play yet.', 'err'); return; }
-  $('stop').onclick();
+  stopPlayback();
+  const dur = songDurationSec();
+  const from = seekSec >= dur - 0.05 ? 0 : seekSec;
   audio = audio || new (window.AudioContext || window.webkitAudioContext)();
   const t0 = audio.currentTime + 0.1;
   for (const track of song.tracks) {
     for (const n of track.notes) {
-      const start = t0 + tickToSeconds(song, n.tick);
-      const dur = Math.max(0.05, tickToSeconds(song, n.tick + n.duration) - tickToSeconds(song, n.tick));
+      const nStart = tickToSeconds(song, n.tick);
+      const nEnd = tickToSeconds(song, n.tick + n.duration);
+      if (nEnd <= from) continue;
+      const start = t0 + Math.max(nStart, from) - from;
+      const ndur = Math.max(0.05, nEnd - Math.max(nStart, from));
       const osc = audio.createOscillator();
       const gain = audio.createGain();
       osc.type = track.isDrums ? 'square' : (track.program < 8 ? 'triangle' : track.program < 32 ? 'sawtooth' : 'sine');
       osc.frequency.value = 440 * Math.pow(2, (n.pitch - 69) / 12);
       gain.gain.setValueAtTime((n.velocity / 127) * 0.15, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + ndur);
       osc.connect(gain).connect(audio.destination);
-      osc.start(start); osc.stop(start + dur + 0.05);
+      osc.start(start); osc.stop(start + ndur + 0.05);
       nodes.push(osc);
     }
   }
-  say('Playing a plain-synth preview. The .mid carries the real instrument numbers.', 'ok');
+  playStartCtx = t0;
+  playStartSec = from;
+  playRaf = requestAnimationFrame(trackPlayhead);
+  say('Playing a plain-synth preview from ' + from.toFixed(1) + 's. The .mid carries the real instrument numbers.', 'ok');
   window.dispatchEvent(new CustomEvent('denting:action', { detail: 'play' }));
 };
 $('stop').onclick = () => {
-  for (const n of nodes) { try { n.stop(); } catch {} }
-  nodes = [];
+  stopPlayback();
 };
 
 $('guideBtn').onclick = startGuide;

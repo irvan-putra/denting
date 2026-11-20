@@ -27,15 +27,15 @@ const STEPS = [
   {
     title: 'hear it',
     target: '#play',
-    text: 'Press Play. The preview is a plain synth; the exported .mid carries the real instrument numbers.',
+    text: 'Press Play. The preview is a plain synth; the exported .mid carries the real instrument numbers. Drag the timeline under the buttons to jump to any spot instead of replaying from the start.',
     why: 'Directing music you have not heard is guessing.',
     advanceOn: { action: 'play' },
   },
   {
     title: 'say it your way',
     target: '#request',
-    text: 'In the request box, try "make it softer" and press Direct. denting rewrites the velocities and logs what it did.',
-    why: 'Typed requests work on the whole piece when you do not name a spot.',
+    text: 'Empty the two beats boxes so no spot is aimed, type "make it faster" and press Direct. Press Play before and after: the whole piece clearly speeds up.',
+    why: 'A request with no aim touches the whole piece; tempo is the easiest change to hear.',
     advanceOn: { event: 'saved' },
   },
   {
@@ -54,15 +54,15 @@ const STEPS = [
   {
     title: 'bring an assistant in, by hand',
     target: '#askAssistant',
-    text: 'Press "Copy brief for an assistant", paste it to an assistant you already use, paste its JSON plan into the box, press "Check plan", read the preview, then "Apply plan".',
+    text: 'Type your request in the request box first, then press "Copy brief for an assistant". Paste the brief to an assistant you already use, paste its JSON plan into the box here, press "Check plan" and read the preview, then "Apply plan". If the plan says "none", the assistant never got your request; send the edit in words and paste its new plan back.',
     why: 'No AI is built into denting. A plan can only use the same edits as typed commands; composing a new piece from a description is not possible this way.',
     advanceOn: { action: 'plan-applied' },
   },
   {
     title: 'take it with you',
     target: '#export',
-    text: 'Press "Export .mid" for the music file, or "Export handover notes" for a sheet a musician can pick up.',
-    why: 'The .mid is the source of truth; the score below is a reading picture.',
+    text: 'Three ways out: "Export .mid" for the music file, "Export handover notes" for a text summary, and "Print sheet notes" for the score (save as PDF from your browser\'s print dialog). The score is drawn below the player.',
+    why: 'The .mid is the source of truth; the score is a reading picture, quantized and without loudness.',
     advanceOn: { action: 'export-mid' },
   },
   {
