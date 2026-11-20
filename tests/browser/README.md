@@ -22,6 +22,7 @@ Run any suite against a local checkout or the deployed site:
     node tests/browser/guide-viewport.cjs http://127.0.0.1:8128
     node tests/browser/player-timeline.cjs http://127.0.0.1:8129
     node tests/browser/assistant-bridge.cjs http://127.0.0.1:8130
+    node tests/browser/fresh-aim.cjs http://127.0.0.1:8131
     node tests/browser/player-timeline.cjs https://vanipy.com/denting
 
 - `guide-flow.cjs` (14 assertions): the whole guided first-song flow,
@@ -37,6 +38,9 @@ Run any suite against a local checkout or the deployed site:
 - `assistant-bridge.cjs` (10 assertions): the brief refuses to copy
   without a typed request, carries the request when given one, calls
   out an op-"none" plan as changing nothing, and applies a real plan.
+- `fresh-aim.cjs` (5 assertions): a fresh load has empty aim boxes, the
+  example load keeps them empty, a whole-piece edit touches every note,
+  and an explicitly typed aim still scopes the edit.
 
 ## Reading the measurements
 

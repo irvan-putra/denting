@@ -34,7 +34,7 @@ const STEPS = [
   {
     title: 'say it your way',
     target: '#request',
-    text: 'Empty the two beats boxes so no spot is aimed, type "make it faster" and press Direct. Press Play before and after: the whole piece clearly speeds up.',
+    text: 'Leave the two beats boxes empty so no spot is aimed, type "make it faster" and press Direct. Press Play before and after: the whole piece clearly speeds up.',
     why: 'A request with no aim touches the whole piece; tempo is the easiest change to hear.',
     advanceOn: { event: 'saved' },
   },

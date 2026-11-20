@@ -3,7 +3,7 @@
 // that (the spec's limit: a check of the notes is described as a check of
 // the notes). They never claim to judge how the music sounds.
 
-import { tickToSeconds, tickToBeat, songEndTick, GM_DRUMS } from './model.js?v=0.4.17';
+import { tickToSeconds, tickToBeat, songEndTick, GM_DRUMS } from './model.js?v=0.4.18';
 
 /**
  * Run all checks. Returns [{ id, severity: 'warn'|'info', text }] - empty
