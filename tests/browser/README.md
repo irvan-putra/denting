@@ -41,6 +41,10 @@ Run any suite against a local checkout or the deployed site:
 - `fresh-aim.cjs` (5 assertions): a fresh load has empty aim boxes, the
   example load keeps them empty, a whole-piece edit touches every note,
   and an explicitly typed aim still scopes the edit.
+- `score-chords.cjs` (6 assertions): the dense-harmony Epic export
+  renders its score with no error box and its ABC text carries the tied
+  chord segments of v0.4.19; the clean example still renders; saves
+  score screenshots for visual inspection.
 
 ## Reading the measurements
 
