@@ -532,5 +532,71 @@ function fixture() {
   ok(r4.errors.length > 0, 'import: fractional length is an error');
 }
 
+// Unequal-duration chords (core/abc.js): split into tied segments, capped
+// at the next attack, so dense harmony round-trips through the importer.
+{
+  // chord members C:8, E:2, G:4 units (tpb 480, grid 120 ticks)
+  const song = newSong({ bpm: 120 });
+  const t = addTrack(song, { name: 'p' });
+  t.notes.push(
+    { tick: 0, duration: 960, pitch: 60, velocity: 96 }, // C, 8 units
+    { tick: 0, duration: 240, pitch: 64, velocity: 96 }, // E, 2 units
+    { tick: 0, duration: 480, pitch: 67, velocity: 96 }, // G, 4 units
+  );
+  eq(partToAbc(song, t), ['[CEG]2-[CG]2-C4'], 'chords: unequal members split into tied segments');
+  const r = abcToSong(songToAbc(song));
+  eq(r.errors, [], 'chords: split reimport no errors');
+  eq(r.song.tracks[0].notes.map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch }))
+      .sort((a, b) => a.pitch - b.pitch),
+    [{ tick: 0, duration: 960, pitch: 60 }, { tick: 0, duration: 240, pitch: 64 }, { tick: 0, duration: 480, pitch: 67 }],
+    'chords: unequal members round trip exact');
+  eq(songToAbc(r.song), songToAbc(song), 'chords: text fixed point');
+
+  // equal-duration members keep the plain [CEG]len form
+  const flat = newSong({ bpm: 120 });
+  const ft = addTrack(flat, { name: 'p' });
+  ft.notes.push(
+    { tick: 0, duration: 480, pitch: 60, velocity: 96 },
+    { tick: 0, duration: 480, pitch: 64, velocity: 96 },
+    { tick: 0, duration: 480, pitch: 67, velocity: 96 },
+  );
+  eq(partToAbc(flat, ft), ['[CEG]4'], 'chords: equal members unchanged');
+
+  // a note still sounding at the next attack is written up to that
+  // attack (one voice cannot overlap); the attack keeps its true slot
+  const over = newSong({ bpm: 120 });
+  const ot = addTrack(over, { name: 'p' });
+  ot.notes.push(
+    { tick: 0, duration: 960, pitch: 60, velocity: 96 },   // held 8 units
+    { tick: 480, duration: 480, pitch: 64, velocity: 96 }, // attack at unit 4
+  );
+  eq(partToAbc(over, ot), ['C4', 'E4'], 'overlap: held note capped at next attack, attack unshifted');
+  const ro = abcToSong(songToAbc(over));
+  eq(ro.song.tracks[0].notes.map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch }))
+      .sort((a, b) => a.tick - b.tick),
+    [{ tick: 0, duration: 480, pitch: 60 }, { tick: 480, duration: 480, pitch: 64 }],
+    'overlap: reimport keeps both attacks at their true ticks');
+
+  // unequal chord crossing a barline: ties and barlines combine
+  const cross = newSong({ bpm: 120 });
+  const ct = addTrack(cross, { name: 'p' });
+  ct.notes.push(
+    { tick: 1440, duration: 960, pitch: 60, velocity: 96 }, // unit 12, 8 units: crosses bar 16
+    { tick: 1440, duration: 480, pitch: 64, velocity: 96 }, // unit 12, 4 units
+  );
+  eq(partToAbc(cross, ct), ['z12', '[CE]4-|C4'], 'chords: unequal members tied across a barline');
+  const rc = abcToSong(songToAbc(cross));
+  eq(rc.errors, [], 'chords: barline-crossing reimport no errors');
+  eq(rc.song.tracks[0].notes.map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch }))
+      .sort((a, b) => a.pitch - b.pitch),
+    [{ tick: 1440, duration: 960, pitch: 60 }, { tick: 1440, duration: 480, pitch: 64 }],
+    'chords: barline-crossing unequal members round trip exact');
+
+  // chunking (two-bar tunes) still splits the split chords cleanly
+  const bars = partToAbcBars(cross, ct);
+  eq(bars.length, 2, 'chords: crossing chord spans two bars');
+  eq(songToAbcTunes(cross).length >= 1, true, 'chords: tunes render');
+}
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

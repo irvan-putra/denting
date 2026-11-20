@@ -16,7 +16,7 @@
 //   documented, lossy convention, not a recovery of the original pitches.
 // - timing finer than the sixteenth-note grid the exporter quantizes to.
 
-import { newSong, addTrack } from './model.js?v=0.4.18';
+import { newSong, addTrack } from './model.js?v=0.4.19';
 
 const PC = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 const DEFAULT_VELOCITY = 96;
@@ -103,15 +103,30 @@ export function abcToSong(text, opts = {}) {
       return;
     }
     let dur = parsed.mult;
-    if (pending && pending.head === parsed.head && pending.track === track) {
-      // tie continuation: extend the open group instead of new notes
-      pending.notes.forEach(n => { n.duration += dur; });
-      stats.ties++;
-      if (!parsed.tie) flushTie();
-      cursor += dur;
-      return;
+    if (pending && pending.track === track) {
+      // tie continuation: extend the open notes whose pitch continues.
+      // Pitches absent from the continuation simply end; pitches new in
+      // the continuation start fresh. (The exporter's unequal-duration
+      // chord segments rely on this per-pitch reading, e.g. [CEG]2-[CG]6.)
+      const matched = pending.notes.filter(n => parsed.pitches.includes(n.pitch));
+      if (matched.length) {
+        matched.forEach(n => { n.duration += dur; });
+        stats.ties++;
+        const fresh = parsed.pitches
+          .filter(p => !pending.notes.some(n => n.pitch === p))
+          .map(pitch => {
+            const n = { tick: 0, duration: dur, pitch, velocity: DEFAULT_VELOCITY, _u: cursor };
+            noteLists.get(track).push(n);
+            return n;
+          });
+        stats.notes += fresh.length;
+        if (fresh.length && fresh.length + matched.length > 1) stats.chords++;
+        pending = parsed.tie ? { head: parsed.head, notes: matched.concat(fresh), track } : null;
+        cursor += dur;
+        return;
+      }
+      errors.push('tie across different pitches (slur) unsupported: kept as separate notes');
     }
-    if (pending) errors.push('tie across different pitches (slur) unsupported: kept as separate notes');
     const notes = parsed.pitches.map(pitch => {
       const n = { tick: 0, duration: dur, pitch, velocity: DEFAULT_VELOCITY, _u: cursor };
       noteLists.get(track).push(n);
@@ -188,8 +203,16 @@ export function abcToSong(text, opts = {}) {
       const pieces = segs.filter(s => s !== '');
       if (segs.length > 1) stats.bars += segs.length - 1;
       for (const piece of pieces) {
-        const parsed = parseToken(piece, errors, track.isDrums);
-        if (parsed) place(parsed); else stats.skipped++;
+        // tied groups sit inside one token ("[CEG]2-[CG]2-C4"); every
+        // inner segment but the last carries its tie, as does the last
+        // when the piece itself ended with one ("C4-")
+        const trailingTie = piece.endsWith('-');
+        const linked = piece.split('-').filter(s => s !== '');
+        for (let li = 0; li < linked.length; li++) {
+          const part = linked[li] + (li < linked.length - 1 || trailingTie ? '-' : '');
+          const parsed = parseToken(part, errors, track.isDrums);
+          if (parsed) place(parsed); else stats.skipped++;
+        }
       }
     }
   }

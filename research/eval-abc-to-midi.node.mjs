@@ -85,6 +85,27 @@ function checkSong(name, song) {
   const imp = abcToSong(abc);
   const errors = imp.errors;
   const fid = sameNotes(snap(song), melodicNotes(imp.song));
+  // position-keyed breakdown (per melodic track, keyed by tick:pitch):
+  // separates moved/lost notes (positions) from notes that keep their
+  // attack and pitch but read with a shortened written duration (the
+  // exporter's one-voice rule: a note still sounding at the next attack
+  // is written only up to that attack; the .mid keeps the full sustain)
+  let notesMissing = 0, notesExtra = 0, durationShortened = 0, durationOther = 0;
+  const g = gridOf(song);
+  for (const t of song.tracks) {
+    if (t.isDrums) continue;
+    const impTrack = imp.song.tracks.find(x => x.name === t.name);
+    const key = n => n.tick + ':' + n.pitch;
+    const om = new Map(t.notes.map(n => [key({ tick: Math.round(n.tick / g) * g, pitch: n.pitch }),
+      Math.max(1, Math.round(n.duration / g)) * g]));
+    const gm = new Map((impTrack ? impTrack.notes : []).map(n => [key(n), n.duration]));
+    for (const [k, d] of om) {
+      if (!gm.has(k)) { notesMissing++; continue; }
+      if (gm.get(k) < d) durationShortened++;
+      else if (gm.get(k) > d) durationOther++;
+    }
+    for (const k of gm.keys()) if (!om.has(k)) notesExtra++;
+  }
   // drift: raw vs snapped, counted per note index of the sorted snapped list
   const raw = rawNotes(song).sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);
   const snapped = snap(song);
@@ -121,6 +142,7 @@ function checkSong(name, song) {
     melodicNotes: snapped.length,
     drumNotes: drumNoteCount(song),
     fidelity: fid.same, fidelityWhy: fid.why || '', fidelityMismatches: fid.mismatches,
+    positions: { missing: notesMissing, extra: notesExtra, durationShortened, durationLengthened: durationOther },
     chordDurationCollapsed: collapsed,
     textFixedPoint: abc2 === abc,
     driftedNotes: drifted,

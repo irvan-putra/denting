@@ -44,5 +44,22 @@ No general ABC spec coverage (the bounds above are the whole promise). No UI int
 ## Next integration gap
 
 1. UI wiring decision (user/product owned): an imported seed should land as a NEW song or a clearly-marked revision, never overwriting existing music; the manual bridge stays untouched.
-2. Exporter improvement candidate (bounded, would need its own verification and a release): split unequal-duration chords into tied single-note events so dense-harmony scores stop collapsing; today even the text fixed point fails there.
+2. ~~Exporter improvement candidate~~ Done same day, see the addendum below: unequal-duration chords now split into tied segments, shipped in v0.4.19.
 3. After wiring, the full loop description -> ABC seed -> `abcToSong` -> player becomes a smoke-test away; the eval harnesses from both rounds then cover each stage separately.
+
+## Addendum (same day, v0.4.19): exporter chord-splitting fix shipped
+
+The one failing item above was an exporter property, so the exporter got the fix. Three changes:
+
+- `core/abc.js partToAbc`: chord members with unequal durations are split into tied segments (`[CEG]2-[CG]2-C4` keeps C and G ringing after E stops) instead of every member taking the lowest-sorted member's duration.
+- `core/abc.js partToAbc`: a note still sounding when the next attack starts is now written only up to that attack (one voice cannot overlap). Before, the overlap silently shifted every later event on the staff - that shift, not the chord collapse alone, is what took 302 of 306 Epic notes out on reimport.
+- `core/abc-import.js`: ties now join per pitch (a tied continuation extends the pitches that continue; absent pitches end, new ones start) and tied groups glued inside one token parse segment by segment.
+
+Post-fix measurements (same harness, `eval-abc-to-midi-raw-2026-11-20.txt` regenerated; the harness gained a position-keyed `positions` breakdown per item):
+
+- Balonku-Ada-Lima-Epic-Version: every attack position and pitch now reimports exact (0 missing, 0 extra, per melodic track). 93 of 306 written durations read shorter than the .mid, all of them String Ensemble pad notes that ring past the next attack - the one-voice cap above, not a shift. The text fixed point, which failed before, now holds. The MIDI-bytes round trip of the imported song stays exact.
+- The other 7 corpus items are unchanged: exact fidelity, exact MIDI round trips, exact text fixed points. The 38 unequal-chord members named above now carry their own durations via the tied segments.
+- Drift is untouched (40 notes corpus-wide snap to the sixteenth grid; exporter quantization, importer-independent).
+- Unit coverage: 13 new assertions in `tests/run.js` (split form, equal-chord regression, cap at next attack, barline-crossing ties, round trips, fixed point, bar chunking); suite 169 passed, 0 failed.
+
+Remaining documented loss (the .mid stays the source of truth): a note held past the next attack reads shorter in the score than it sounds. Printing the full sustain would need multiple ABC voices per staff - a feature-sized change to the exporter, importer and print chunking, not part of this bugfix.

@@ -45,7 +45,14 @@ export function clefFor(track) {
 
 // One part's notes -> a list of ABC event strings ('|' at barlines),
 // quantized to the grid. Chords become [CEG]; notes crossing a barline
-// are split and tied.
+// are split and tied. Two single-voice honesty rules for dense harmony:
+// - chord members with unequal durations are split into tied segments
+//   ("[CEG]2-[CG]6": C and G keep ringing after E stops), so no member
+//   silently takes another's length;
+// - a note still sounding when the next attack starts is written only up
+//   to that attack (one voice cannot overlap); the .mid keeps the full
+//   sustain. This keeps every later attack at its true position instead
+//   of letting the overlap shift the rest of the line.
 export function partToAbc(song, track) {
   const grid = Math.round(song.ticksPerBeat / 4); // one 1/16 in ticks
   const sig = song.timeSignatures[0] || { numerator: 4, denominator: 4 };
@@ -54,13 +61,13 @@ export function partToAbc(song, track) {
   const byStart = new Map();
   for (const n of track.notes) {
     const start = Math.round(n.tick / grid);
-    const dur = Math.max(1, Math.round(n.duration / grid));
     if (!byStart.has(start)) byStart.set(start, []);
     byStart.get(start).push(n);
   }
   const starts = [...byStart.keys()].sort((a, b) => a - b);
   let cursor = 0; // in grid units
-  for (const start of starts) {
+  for (let si = 0; si < starts.length; si++) {
+    const start = starts[si];
     if (start > cursor) {
       // rest(s) for the gap, broken at barlines
       let gap = start - cursor;
@@ -73,26 +80,50 @@ export function partToAbc(song, track) {
       }
     }
     const chord = byStart.get(start).slice().sort((a, b) => a.pitch - b.pitch);
-    let dur = Math.max(1, Math.round(chord[0].duration / grid));
-    // split at barlines, tie the pieces
-    const pieces = [];
-    let placed = 0;
-    while (placed < dur) {
-      const toBar = barUnits - ((start + placed) % barUnits);
-      const step = Math.min(dur - placed, toBar);
-      pieces.push(step);
-      placed += step;
-    }
     const toSym = track.isDrums ? drumToAbc : pitchToAbc;
-    const head = chord.length > 1
-      ? '[' + chord.map(n => toSym(n.pitch)).join('') + ']'
-      : toSym(chord[0].pitch);
-    // Tied pieces carry their barlines inside the join ("C4-|C4"), so
-    // every crossed bar still gets its own bar entry downstream.
-    events.push(pieces.map(p => head + lenStr(p)).join('-|'));
-    cursor = start + dur;
+    // Written durations, capped at the next attack (second rule above).
+    const nextGap = si + 1 < starts.length ? starts[si + 1] - start : Infinity;
+    const durs = chord.map(n => Math.min(Math.max(1, Math.round(n.duration / grid)), nextGap));
+    const total = Math.max(...durs);
+    // Split the span at every member's end: each segment holds the
+    // members still sounding, tied on from the previous segment.
+    const bounds = [...new Set(durs)].sort((a, b) => a - b);
+    const atoms = []; // { head, len } sequential segments of this chord
+    let prev = 0;
+    for (const b of bounds) {
+      const active = chord.filter((n, i) => durs[i] >= b).map(n => toSym(n.pitch));
+      const uniq = [...new Set(active)]; // drums can share a display position
+      atoms.push({ head: uniq.length > 1 ? '[' + uniq.join('') + ']' : uniq[0], len: b - prev });
+      prev = b;
+    }
+    // Split the whole span at barlines. Tied pieces carry their barlines
+    // inside the join ("C4-|C4"), so every crossed bar still gets its own
+    // bar entry downstream.
+    const parts = []; // written note tokens in order
+    const ends = [];  // absolute grid position where each token ends
+    let pos = 0;
+    for (const atom of atoms) {
+      let left = atom.len;
+      while (left > 0) {
+        const toBar = barUnits - ((start + pos) % barUnits);
+        const step = Math.min(left, toBar);
+        parts.push(atom.head + lenStr(step));
+        pos += step;
+        ends.push(start + pos);
+        left -= step;
+      }
+    }
+    let text = parts[0];
+    let internal = 0; // barlines already emitted between tokens
+    for (let i = 1; i < parts.length; i++) {
+      if (ends[i - 1] % barUnits === 0) { text += '-|'; internal++; }
+      else text += '-';
+      text += parts[i];
+    }
+    events.push(text);
+    cursor = start + total;
     const crossed = Math.floor(cursor / barUnits) - Math.floor(start / barUnits);
-    for (let i = pieces.length - 1; i < crossed; i++) events.push('|');
+    for (let i = internal; i < crossed; i++) events.push('|');
   }
   return events;
 }
