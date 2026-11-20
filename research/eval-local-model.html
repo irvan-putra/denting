@@ -41,7 +41,8 @@ const RUN = CASES.slice(START, START + COUNT);
   const t0 = performance.now();
   try {
     log('webgpu: ' + (navigator.gpu ? (await navigator.gpu.requestAdapter() ? 'adapter' : 'no adapter') : 'absent'));
-    const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
+    const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3');
+    env.allowLocalModels = true;
     log('library loaded at ' + Math.round(performance.now() - t0) + 'ms');
     const gen = await pipeline('text-generation', MODEL, { dtype: 'q4', device: 'wasm' });
     const tLoad = Math.round(performance.now() - t0);
