@@ -31,7 +31,7 @@ const CASES = [
   { q: 'make it more emotional', op: 'none' },
   { q: 'change the lyrics', op: 'none' },
 ];
-const MODEL = 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
+const MODEL = new URLSearchParams(location.search).get('model') || 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
 (async () => {
   const t0 = performance.now();
   try {
