@@ -99,9 +99,42 @@ Options that remain inside the constraints:
      words into structured edit plans cannot be assumed from model
      size alone, and that any candidate needs this kind of harness
      run against it before it is considered.
+   - Second round (2026-11-20, research/eval-results-2026-11-20.md):
+     SmolLM2-360M-Instruct parsed 6/16 replies and got 0/10 real edit
+     requests right (the 3 correct answers were "none" cases);
+     Qwen2.5-0.5B could not even load in the 2 GB test environment.
+     Format-following was not reached at 360M on this box; larger or
+     GPU-backed on-device models remain unevaluated.
 
 Either way, the engine's aim-enforcement already wraps any future
 model, so a model can never touch music outside the aim.
+
+### Words to a NEW composition
+
+The spec's larger promise is directing music with words, which
+includes starting a piece from a description. Where that stands:
+
+- **Not built, and not quietly approximated.** The typed vocabulary
+  and the assistant-bridge schema are EDIT operations on existing
+  music (transpose, louder/softer, faster/slower, tempo, none).
+  Neither can turn "a birthday song for my niece" into a new piece,
+  and the app says so rather than returning a fabricated plan.
+- **Blocked on the same open model decision, plus more.** A new
+  piece needs generation, not just an edit plan. YuE2 (assessed
+  above) generates audio from lyrics/style, not MIDI, and cannot run
+  here; the on-device route has not reached format-following even
+  for the smaller edit-plan task. No candidate for
+  description-to-new-MIDI exists inside the project constraints
+  today.
+- **What exists meanwhile:** the Balonku example seed, .mid import
+  for pieces made elsewhere, and the library for saved fragments
+  that can be inserted by name. A person can assemble a piece from
+  imported material and direct it with words; they cannot yet
+  conjure one from a description.
+- **Next step when revisited:** extend the evaluation harness to
+  description-to-seed-ABC/MIDI candidates before committing to any
+  generation feature; the harness pattern (fixed requests, strict
+  parsing, measured latency, scoped claims) is in research/.
 
 ### YuE assessed for this project (2026-11-19)
 
