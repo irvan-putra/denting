@@ -31,7 +31,12 @@ const CASES = [
   { q: 'make it more emotional', op: 'none' },
   { q: 'change the lyrics', op: 'none' },
 ];
-const MODEL = new URLSearchParams(location.search).get('model') || 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
+const params = new URLSearchParams(location.search);
+const MODEL = params.get('model') || 'onnx-community/SmolLM2-135M-Instruct-ONNX-MHA';
+const sp = (params.get('slice') || '').split(',').map(Number);
+const START = isNaN(sp[0]) ? 0 : sp[0];
+const COUNT = isNaN(sp[1]) ? CASES.length : sp[1];
+const RUN = CASES.slice(START, START + COUNT);
 (async () => {
   const t0 = performance.now();
   try {
@@ -42,7 +47,7 @@ const MODEL = new URLSearchParams(location.search).get('model') || 'onnx-communi
     const tLoad = Math.round(performance.now() - t0);
     log('model ' + MODEL + ' ready at ' + tLoad + 'ms');
     let opOk = 0, fieldOk = 0, fieldTot = 0, parseOk = 0, lat = [];
-    for (const c of CASES) {
+    for (const [idx, c] of RUN.entries()) {
       const tq = performance.now();
       const r = await gen([{ role: 'system', content: SCHEMA }, { role: 'user', content: c.q }],
         { max_new_tokens: 160, do_sample: false });
@@ -55,20 +60,24 @@ const MODEL = new URLSearchParams(location.search).get('model') || 'onnx-communi
       const opGood = parsed && parsed.op === c.op;
       if (opGood) opOk++;
       let det = '';
+      const fields = {};
       for (const k of ['track', 'amount', 'bpm', 'fromBeat', 'toBeat']) {
         if (c[k] !== undefined) {
           fieldTot++;
           const good = parsed && parsed[k] === c[k];
           if (good) fieldOk++;
+          fields[k] = { want: c[k], got: parsed ? parsed[k] : null, good };
           det += ' ' + k + ':' + (good ? 'ok' : 'want ' + c[k] + ' got ' + (parsed ? parsed[k] : 'unparsed'));
         }
       }
+      log('RESULT ' + JSON.stringify({ i: START + idx, q: c.q, wantOp: c.op, parsed, opGood, fields, ms }));
       log((opGood ? 'PASS ' : 'FAIL ') + JSON.stringify(c.q) + ' -> op ' + (parsed ? parsed.op : 'unparsed') + ' (' + ms + 'ms)' + det);
     }
     lat.sort((a, b) => a - b);
+    log('META ' + JSON.stringify({ model: MODEL, loadMs: tLoad, cases: RUN.length, parse: parseOk, op: opOk, fieldsOk: fieldOk, fieldsTot: fieldTot, latencyMedianMs: lat[Math.floor(lat.length / 2)], maxMs: lat[lat.length - 1] }));
     log('SUMMARY model=' + MODEL + ' loadMs=' + tLoad +
-      ' parse=' + parseOk + '/' + CASES.length +
-      ' op=' + opOk + '/' + CASES.length +
+      ' parse=' + parseOk + '/' + RUN.length +
+      ' op=' + opOk + '/' + RUN.length +
       ' fields=' + fieldOk + '/' + fieldTot +
       ' latencyMedianMs=' + lat[Math.floor(lat.length / 2)] + ' maxMs=' + lat[lat.length - 1]);
   } catch (e) { log('EVAL_ERROR ' + (e && e.message ? e.message : String(e))); }
