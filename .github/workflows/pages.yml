@@ -4,13 +4,24 @@ on:
     branches: [main]
   workflow_dispatch:
 permissions:
+  contents: read
   pages: write
   id-token: write
 concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  consistency:
+    # patuh source gate on the exact tree being deployed. A consistency
+    # failure stops the deploy: for a web project, the Pages deploy IS the
+    # release, so this is the preventive boundary. Same pinned reviewed
+    # commit as the rest of the family.
+    uses: irvan-putra/patuh/.github/workflows/release-gate.yml@4e064163e62a3cf677e11de016ffbb6f4041816b
+    with:
+      app: denting
+      published: false
   deploy:
+    needs: consistency
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
