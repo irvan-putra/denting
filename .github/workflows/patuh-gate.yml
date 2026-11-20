@@ -1,0 +1,20 @@
+name: patuh consistency gate
+
+# Family hygiene checks from irvan-putra/patuh for this web project:
+# README, LICENSE drift, commit author, naming. Runs on every push.
+# Web project: source-only checks. Nothing here gates the Pages deploy,
+# so a red run is a consistency finding, not publish prevention.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-gate:
+    uses: irvan-putra/patuh/.github/workflows/release-gate.yml@4e064163e62a3cf677e11de016ffbb6f4041816b
+    with:
+      app: denting
+      published: false
