@@ -7,6 +7,7 @@ import { interpret, applyPlan, planBrief } from '../core/director.js';
 import { listLibrary } from '../core/library.js';
 import { SEEDS, seedLibrary } from '../core/seeds.js';
 import { songToAbc, pitchToAbc, partToAbc, partToAbcBars, songToAbcTunes, drumToAbc } from '../core/abc.js';
+import { abcToSong } from '../core/abc-import.js';
 import { checkNotes, formatFindings } from '../core/checks.js';
 
 let pass = 0, fail = 0;
@@ -488,6 +489,47 @@ function fixture() {
   const song2 = fixture();
   const r = applyPlan(song2, { op: 'none', track: 'all', fromBeat: null, toBeat: null, amount: null, bpm: null });
   ok(!r.handled && r.reason === 'info', 'op none is refused as info, not applied');
+}
+
+// ABC import (core/abc-import.js): the bounded subset the exporter writes.
+{
+  // simple single-voice tune with headers
+  const r1 = abcToSong('X: 1\nT: Sad phrase\nM: 4/4\nL: 1/4\nQ: 1/4=60\nK: C major\nC E G c | c G E C |]\n');
+  eq(r1.errors, [], 'import: simple tune no errors');
+  eq(r1.song.timeSignatures[0].numerator, 4, 'import: meter');
+  eq(r1.song.tempoMap[0].bpm, 60, 'import: tempo');
+  eq(r1.song.tracks.length, 1, 'import: one track');
+  eq(r1.song.tracks[0].notes.length, 8, 'import: 8 notes');
+  eq(r1.song.tracks[0].notes[0], { tick: 0, duration: 480, pitch: 60, velocity: 96 }, 'import: first note');
+  eq(r1.song.tracks[0].notes[7].pitch, 60, 'import: last note ends on tonic');
+
+  // round trip through denting's own exporter, chords and ties included
+  const song = fixture();
+  const abc = songToAbc(song);
+  const r2 = abcToSong(abc);
+  eq(r2.errors, [], 'import: own export no errors');
+  const melOut = song.tracks.filter(t => !t.isDrums).flatMap(t => t.notes)
+    .map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch }))
+    .sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);
+  const melIn = r2.song.tracks.filter(t => !t.isDrums).flatMap(t => t.notes)
+    .map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch }))
+    .sort((a, b) => a.tick - b.tick || a.pitch - b.pitch);
+  eq(melIn, melOut, 'import: melodic round trip exact');
+  const back = readSmf(writeSmf(r2.song));
+  eq(back.tracks.filter(t => !t.isDrums).flatMap(t => t.notes).length, melOut.length, 'import: MIDI bytes round trip');
+
+  // tie across a barline joins durations
+  const long = newSong({ bpm: 120 });
+  const lt = addTrack(long, { name: 'p' });
+  lt.notes.push({ tick: 1440, duration: 960, pitch: 62, velocity: 96 }); // crosses the barline at 1920
+  const r3 = abcToSong(songToAbc(long));
+  eq(r3.errors, [], 'import: tied note no errors');
+  eq(r3.song.tracks[0].notes.map(n => ({ tick: n.tick, duration: n.duration, pitch: n.pitch })),
+    [{ tick: 1440, duration: 960, pitch: 62 }], 'import: tie joins durations');
+
+  // unsupported constructs are errors, never guesses
+  const r4 = abcToSong('X:1\nM:4/4\nL:1/4\nK:C\nC/2 E\n');
+  ok(r4.errors.length > 0, 'import: fractional length is an error');
 }
 
 console.log(pass + ' passed, ' + fail + ' failed');
