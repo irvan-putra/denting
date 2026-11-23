@@ -16,7 +16,7 @@ jobs:
     # failure stops the deploy: for a web project, the Pages deploy IS the
     # release, so this is the preventive boundary. Same pinned reviewed
     # commit as the rest of the family.
-    uses: irvan-putra/patuh/.github/workflows/release-gate.yml@4e064163e62a3cf677e11de016ffbb6f4041816b
+    uses: irvan-putra/patuh/.github/workflows/release-gate.yml@4e07bf7f13cf57ddbfa686908a707821387b9cf9
     with:
       app: denting
       published: false
