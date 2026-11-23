@@ -14,6 +14,8 @@ is the product built on it; the spec's author does not endorse denting.
 
 Status: **early draft (v0.1.0)**.
 
+Try it: <https://vanipy.com/denting/> (GitHub Pages from this repo's `index.html`).
+
 ## What works today
 
 - Import any `.mid` file; controller data it carries is preserved.
