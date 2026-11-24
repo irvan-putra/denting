@@ -87,3 +87,7 @@ document, request director). `web/` is the browser app on top of it;
 denting's own code: GNU Affero General Public License v3.0 (see
 LICENSE). The spec document keeps its own CC BY-SA 4.0 license; see
 docs/spec/ATTRIBUTION.md.
+
+---
+
+Built with AI assistance (Instinct and others). Not everything has been reviewed by Irvan.
